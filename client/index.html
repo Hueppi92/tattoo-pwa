@@ -6,21 +6,26 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./theme.css" />
-    <title>Meine Tattoo‑PWA</title>
+    <title>Meine Tattoo-PWA</title>
+    <!-- optional: PWA-Statusleistenfarbe -->
+    <meta name="theme-color" content="#0f0f10" />
   </head>
   <body>
     <div id="app"></div>
-    <script src="./config.js"></script>
-<script type="module" src="./script.js"></script>
 
-    <script src="./script.js" type="module"></script>
+    <!-- Backend-URL & Defaults -->
+    <script src="./config.js"></script>
+
+    <!-- App (nur EINMAL laden) -->
+    <script type="module" src="./script.js"></script>
+
+    <!-- Service Worker -->
     <script>
-      // Registrierung des Service Worker für PWA-Funktionen
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker
-            .register('/service-worker.js')
-            .catch((err) => console.error('SW registration failed', err));
+            .register('./service-worker.js') // relativ reicht hier
+            .catch(err => console.error('SW registration failed', err));
         });
       }
     </script>
