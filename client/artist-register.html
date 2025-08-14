@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./theme.css" />
+    <title>Artist registrieren</title>
+  </head>
+  <body>
+    <div id="artist-reg-app"></div>
+
+    <!-- Backend-URL & Defaults -->
+    <script src="./config.js"></script>
+    <!-- Page logic -->
+    <script type="module" src="./artist-register.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+        });
+      }
+    </script>
+  </body>
+</html>
