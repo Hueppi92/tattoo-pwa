@@ -5,24 +5,15 @@
  * - SPA: Navigation fällt offline auf /index.html zurück
  */
 
-const VERSION = 'v6'; // <— bei jedem Frontend-Update erhöhen
+const VERSION = 'v7'; // neu
 const CACHE_NAME = `tattoo-pwa-${VERSION}`;
-
 const OFFLINE_URLS = [
-  '/',                // Render mappt das auf /index.html
-  '/index.html',
-  '/studio.html',
-  '/artist.html',
-  '/style.css',
-  '/theme.css',
-  '/config.js',
-  '/script.js',
-  '/studio.js',
-  '/artist.js',
-  '/assets/marble-bg.png',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/', '/index.html', '/studio.html', '/artist.html',
+  '/artist-register.html', '/artist-register.js', // <— NEU
+  '/style.css', '/theme.css', '/config.js',
+  '/script.js', '/studio.js', '/artist.js',
+  '/assets/marble-bg.png', '/manifest.json',
+  '/icons/icon-192.png', '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
