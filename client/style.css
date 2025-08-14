@@ -1,0 +1,156 @@
+/* Global / Reset */
+* { box-sizing: border-box; }
+
+:root {
+  /* Fallbacks – werden von JS überschrieben */
+  --primary-color: #2c2c2c;
+  --secondary-color: #fefefe;
+  --accent-color: #c9a56c;
+  --font-family: Inter, system-ui, sans-serif;
+
+  --card-bg: rgba(255,255,255,0.20);
+  --card-border: rgba(255,255,255,0.40);
+  --card-blur: 14px;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  color: var(--primary-color);
+
+  /* Hintergrund kommt dynamisch aus JS; hier nur Fallback */
+  background-color: var(--secondary-color);
+  background-position: center;
+}
+
+/* Header */
+header {
+  background: linear-gradient(180deg, rgba(0,0,0,.75) 0%, rgba(0,0,0,.55) 100%);
+  color: var(--secondary-color);
+  padding: 1rem 1.25rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+/* Layout */
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1, h2, h3 { margin-top: 0; }
+
+/* Buttons */
+button {
+  background-color: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: transform .06s ease, filter .2s ease, opacity .2s ease;
+}
+button:hover { filter: brightness(0.95); }
+button:active { transform: translateY(1px); }
+
+/* Inputs */
+input[type="text"],
+input[type="password"],
+input[type="file"],
+select {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  margin-top: 0.25rem;
+  border: 1px solid rgba(0,0,0,.15);
+  border-radius: 10px;
+  background: rgba(255,255,255,.85);
+}
+
+/* Glass Cards */
+.card,
+.form-container {
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border);
+  padding: 1.1rem;
+  margin-bottom: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(0,0,0,.16);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: .5rem;
+  border-bottom: 1px solid rgba(0,0,0,.12);
+  margin-bottom: 1rem;
+  padding-bottom: .25rem;
+}
+.tab {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 10px 10px 0 0;
+  color: var(--primary-color);
+}
+.tab.active {
+  border-bottom: 3px solid var(--accent-color);
+  font-weight: 700;
+}
+
+/* Sections */
+.section { display: none; }
+.section.active { display: block; }
+
+/* Images */
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.image-item {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.06);
+  background: rgba(255,255,255,.75);
+}
+.image-item img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+.rating-buttons { margin-top: 0.5rem; }
+.rating-buttons button { margin-right: 0.5rem; }
+
+/* Auth Forms */
+.form-container {
+  max-width: 440px;
+  margin: 3rem auto;
+  padding: 2rem;
+}
+.form-container h2 { text-align: center; margin-bottom: 1rem; }
+
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.35rem; font-weight: 600; }
+
+.error { color: #b40000; }
+.success { color: #007a4d; }
+
+/* Optional: Studio-spezifische Feinheiten über data-Attribut */
+body[data-studio="secret-ink"] .form-container,
+body[data-studio="secret-ink"] .card {
+  background: rgba(20,16,32,.35);
+  border-color: rgba(106,76,255,.35);
+}
+
+body[data-studio="monkeybrothers"] button {
+  border-radius: 12px;
+}

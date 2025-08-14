@@ -1,0 +1,21 @@
+{
+  "name": "Tattoo Studio PWA",
+  "short_name": "Tattoo PWA",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#202020",
+  "description": "Eine Progressive‑Web‑App zur Betreuung von Tattoo‑Kunden.",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

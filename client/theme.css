@@ -1,0 +1,39 @@
+/* Theme-Variablen für die Tattoo-PWA. Diese Werte können pro Studio
+ * angepasst werden, ohne dass die Logik geändert werden muss. Die
+ * Variablen werden zur Laufzeit durch JavaScript aktualisiert, wenn
+ * eine andere Konfiguration geladen wird. */
+
+:root {
+  /* Grundfarben – für den Glass‑Marmor‑Look können Sie diese Werte
+   * pro Studio anpassen. primary/secondary beeinflussen Texte; accent ist
+   * die Akzentfarbe (Gold) für Buttons und Links. */
+  --primary-color: #2c2c2c;
+  --secondary-color: #fefefe;
+  --accent-color: #c9a56c; /* Goldton */
+  --font-family: 'Segoe UI', Arial, sans-serif;
+  /* Glas‑Karten‑Stil */
+  --card-bg: rgba(255, 255, 255, 0.25);
+  --card-border: rgba(255, 255, 255, 0.4);
+  --card-blur: 10px;
+}
+.card--lux {
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(201,165,108,.45);
+  backdrop-filter: blur(14px);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.15);
+}
+.card--ink {
+  background: rgba(20,16,32,.35);
+  border: 1px solid rgba(106,76,255,.35);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 24px rgba(106,76,255,.15);
+  border-radius: 16px;
+}
+.card--urban {
+  background: rgba(255,255,255,.20);
+  border: 1px solid rgba(29,30,34,.25);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0,0,0,.12);
+  border-radius: 14px;
+}

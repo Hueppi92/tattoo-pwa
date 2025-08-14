@@ -1,0 +1,126 @@
+{
+  "clients": [
+    {
+      "id": "demo-client",
+      "name": "Andi",
+      "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "artistId": "demo-artist",
+      "appointments": [
+        {
+          "id": "appt1",
+          "date": "2025-09-01T10:00:00",
+          "type": "consultation",
+          "description": "Erstberatung"
+        },
+        {
+          "id": "appt2",
+          "date": "2025-09-10T10:00:00",
+          "type": "tattoo",
+          "description": "Tattoo-Termin"
+        }
+      ],
+      "ideas": [],
+      "templates": [],
+      "finalTemplate": null,
+      "healing": []
+    },
+    {
+      "id": "testclient",
+      "name": "Kunde",
+      "password": "13d249f2cb4127b40cfa757866850278793f814ded3c587fe5889e889a7a9f6c",
+      "artistId": "",
+      "appointments": [],
+      "ideas": [],
+      "templates": [],
+      "finalTemplate": null,
+      "healing": []
+    },
+    {
+      "id": "321654",
+      "name": "Andi",
+      "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "artistId": "",
+      "appointments": [],
+      "ideas": [],
+      "templates": [],
+      "finalTemplate": null,
+      "healing": []
+    },
+    {
+      "id": "123",
+      "name": "Andi",
+      "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "artistId": "greta",
+      "appointments": [],
+      "ideas": [],
+      "templates": [],
+      "finalTemplate": null,
+      "healing": []
+    }
+  ],
+  "artists": [
+    {
+      "id": "demo-artist",
+      "name": "Demo Artist",
+      "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
+      "studioName": "Demo Studio"
+    }
+  ],
+  "studioConfig": {
+    "primaryColor": "#202020",
+    "secondaryColor": "#f5f5f5",
+    "accentColor": "#b53131",
+    "logo": ""
+  },
+  "studios": [
+    {
+      "id": "exclusive-ink",
+      "name": "Exclusive Ink",
+      "theme": {
+        "primaryColor": "#0f0f10",
+        "secondaryColor": "#f7f5f2",
+        "accentColor": "#c9a56c",
+        "fontHead": "'Playfair Display', serif",
+        "fontBody": "Inter, system-ui, sans-serif",
+        "bg": "/assets/marble-bg.png"
+      },
+      "manager": {
+        "user": "manager@exclusive",
+        "password": "pass123"
+      }
+    },
+    {
+      "id": "secret-ink",
+      "name": "Secret-Ink",
+      "theme": {
+        "primaryColor": "#e9e6f2",
+        "secondaryColor": "#0a0a0f",
+        "accentColor": "#6a4cff",
+        "fontHead": "Poppins, system-ui, sans-serif",
+        "fontBody": "Poppins, system-ui, sans-serif",
+        "bg": "/assets/marble-bg.png"
+      },
+      "manager": {
+        "user": "manager@secret",
+        "password": "pass123"
+      }
+    },
+    {
+      "id": "monkeybrothers",
+      "name": "Monkeybrothers",
+      "theme": {
+        "primaryColor": "#1d1e22",
+        "secondaryColor": "#faf7f1",
+        "accentColor": "#ff7a00",
+        "accentColor2": "#00c2ff",
+        "fontHead": "Montserrat, system-ui, sans-serif",
+        "fontBody": "Inter, system-ui, sans-serif",
+        "bg": "/assets/marble-bg.png"
+      },
+      "manager": {
+        "user": "manager@monkey",
+        "password": "pass123"
+      }
+    }
+  ]
+}
