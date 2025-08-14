@@ -320,6 +320,20 @@ const server = http.createServer(async (req, res) => {
     return sendJSON(res, 200, { success: true });
   }
 
+// POST /api/artist/register  { artistId, password, name, studioId }
+if (parts[1] === 'artist' && parts[2] === 'register' && method === 'POST') {
+  const { artistId, password, name, studioId } = await readBody(req);
+  if (!artistId || !password || !studioId) {
+    return sendJSON(res, 400, { error: 'artistId, password, studioId erforderlich' });
+  }
+  if (findArtist(data, artistId)) return sendJSON(res, 409, { error: 'Artist existiert bereits' });
+  data.artists = data.artists || [];
+  data.artists.push({ id: artistId, name: name || artistId, password: sha256(password), studioId });
+  writeJSON(data);
+  return sendJSON(res, 200, { success: true, artistId });
+}
+
+  
   // --- ARTISTS --------------------------------------------------------------
   // GET /api/artist/clients
   if (parts[1] === 'artist' && parts[2] === 'clients' && method === 'GET') {
