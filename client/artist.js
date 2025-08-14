@@ -177,4 +177,183 @@ function showClientDetails(artistId, clientId) {
         list.className = 'image-list';
         client.templates.forEach((tmpl) => {
           const item = document.createElement('div');
-          item.className = '
+          item.className = 'image-item';
+          const img = document.createElement('img');
+          img.src = toAbs(tmpl.url || tmpl.path);
+          img.alt = tmpl.filename || 'Vorlage';
+          item.appendChild(img);
+          // Zeige Bewertung des Kunden
+          const rating = document.createElement('span');
+          rating.style.display = 'block';
+          rating.textContent = tmpl.rating ? `Bewertung: ${tmpl.rating}` : '';
+          item.appendChild(rating);
+          list.appendChild(item);
+        });
+        tmplSec.appendChild(list);
+      } else {
+        tmplSec.innerHTML += '<p>Keine Vorlagen vorhanden.</p>';
+      }
+
+      // Finale Vorlage anzeigen
+      if (client.finalTemplate) {
+        const finalShow = document.createElement('div');
+        finalShow.className = 'card';
+        finalShow.innerHTML = `<h3>Finale Vorlage</h3>
+          <img src="${toAbs(client.finalTemplate.url || client.finalTemplate.path)}"
+               alt="Final"
+               style="max-width:100%;height:auto;border-radius:4px;" />`;
+        tmplSec.appendChild(finalShow);
+      }
+      main.appendChild(tmplSec);
+
+      // Heilungsanfragen anzeigen
+      const healSec = document.createElement('div');
+      healSec.className = 'card';
+      healSec.innerHTML = '<h3>Heilungsanfragen</h3>';
+      if (client.healing && client.healing.length > 0) {
+        client.healing
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .forEach((entry) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const date = new Date(entry.createdAt);
+            card.innerHTML = `<strong>Anfrage vom ${date.toLocaleDateString()}</strong><p>${entry.comment || ''}</p>`;
+            // Bilder
+            const imgList = document.createElement('div');
+            imgList.className = 'image-list';
+            entry.images.forEach((img) => {
+              const item = document.createElement('div');
+              item.className = 'image-item';
+              const im = document.createElement('img');
+              im.src = toAbs(img.url || img.path);
+              im.alt = img.filename || 'Heilungsbild';
+              item.appendChild(im);
+              imgList.appendChild(item);
+            });
+            card.appendChild(imgList);
+            // Vorhandene Antworten
+            if (entry.responses && entry.responses.length > 0) {
+              entry.responses.forEach((resp) => {
+                const rdate = new Date(resp.createdAt);
+                const p = document.createElement('p');
+                p.innerHTML = `<em>Antwort vom ${rdate.toLocaleDateString()}: ${resp.comment}</em>`;
+                card.appendChild(p);
+              });
+            }
+            // Antwortformular
+            const respInput = document.createElement('input');
+            respInput.type = 'text';
+            respInput.placeholder = 'Antwort eingeben';
+            respInput.style.width = '100%';
+            const respBtn = document.createElement('button');
+            respBtn.textContent = 'Antwort senden';
+            const msg = document.createElement('p');
+            respBtn.addEventListener('click', () => {
+              const comment = respInput.value.trim();
+              if (!comment) return;
+              fetch(`${API_BASE}/client/${clientId}/healing/${entry.id}/response`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ artistId, comment })
+              })
+                .then((resp) => resp.json())
+                .then((data) => {
+                  if (data.success) {
+                    msg.textContent = 'Antwort gespeichert';
+                    msg.className = 'success';
+                    showClientDetails(artistId, clientId);
+                  } else {
+                    msg.textContent = data.error || 'Fehler beim Speichern';
+                    msg.className = 'error';
+                  }
+                })
+                .catch((err) => {
+                  msg.textContent = 'Fehler beim Speichern';
+                  msg.className = 'error';
+                  console.error(err);
+                });
+            });
+            card.appendChild(respInput);
+            card.appendChild(respBtn);
+            card.appendChild(msg);
+            healSec.appendChild(card);
+          });
+      } else {
+        healSec.innerHTML += '<p>Keine Heilungsanfragen.</p>';
+      }
+      main.appendChild(healSec);
+      app.appendChild(main);
+
+      // Eventlistener für Upload von Vorlagen
+      document.getElementById('tmpl-upload-btn').addEventListener('click', () => {
+        const files = document.getElementById('tmpl-files').files;
+        if (!files || files.length === 0) {
+          document.getElementById('tmpl-msg').textContent = 'Bitte Dateien auswählen';
+          document.getElementById('tmpl-msg').className = 'error';
+          return;
+        }
+        Promise.all(Array.from(files).map((file) => fileToBase64(file))).then((base64Files) => {
+          const templates = base64Files.map((data, idx) => ({ name: files[idx].name, data }));
+          fetch(`${API_BASE}/client/${clientId}/templates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ templates })
+          })
+            .then((resp) => resp.json())
+            .then((data) => {
+              if (data.success) {
+                document.getElementById('tmpl-msg').textContent = 'Vorlagen hochgeladen';
+                document.getElementById('tmpl-msg').className = 'success';
+                showClientDetails(artistId, clientId);
+              } else {
+                document.getElementById('tmpl-msg').textContent = data.error || 'Fehler beim Upload';
+                document.getElementById('tmpl-msg').className = 'error';
+              }
+            })
+            .catch((err) => {
+              document.getElementById('tmpl-msg').textContent = 'Fehler beim Upload';
+              document.getElementById('tmpl-msg').className = 'error';
+              console.error(err);
+            });
+        });
+      });
+
+      // Eventlistener für finalen Upload
+      document.getElementById('final-upload-btn').addEventListener('click', () => {
+        const fileInput = document.getElementById('final-file');
+        const file = fileInput.files[0];
+        if (!file) {
+          document.getElementById('final-msg').textContent = 'Bitte eine Datei auswählen';
+          document.getElementById('final-msg').className = 'error';
+          return;
+        }
+        fileToBase64(file).then((dataUrl) => {
+          const final = { name: file.name, data: dataUrl };
+          fetch(`${API_BASE}/client/${clientId}/final`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ final })
+          })
+            .then((resp) => resp.json())
+            .then((data) => {
+              if (data.success) {
+                document.getElementById('final-msg').textContent = 'Finale Vorlage gespeichert';
+                document.getElementById('final-msg').className = 'success';
+                showClientDetails(artistId, clientId);
+              } else {
+                document.getElementById('final-msg').textContent = data.error || 'Fehler beim Upload';
+                document.getElementById('final-msg').className = 'error';
+              }
+            })
+            .catch((err) => {
+              document.getElementById('final-msg').textContent = 'Fehler beim Upload';
+              document.getElementById('final-msg').className = 'error';
+              console.error(err);
+            });
+        });
+      });
+    })
+    .catch((err) => {
+      console.error('Fehler beim Laden der Kundendaten', err);
+    });
+}
