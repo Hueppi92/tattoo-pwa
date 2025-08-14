@@ -73,9 +73,10 @@ function loadArtistDashboard(artistId) {
   const main = document.createElement('main');
   main.innerHTML = '<h2>Meine Kunden</h2>';
   // Liste der Clients laden
-  fetch(`${API_BASE}/artist/clients`)
-    .then((resp) => resp.json())
-    .then((clients) => {
+  fetch(`${API_BASE}/artist/${artistId}/clients`)
+  .then((resp) => resp.json())
+  .then((clients) => {
+
       const list = document.createElement('div');
       clients
         .filter((c) => !c.artistId || c.artistId === artistId)

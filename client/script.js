@@ -1,14 +1,13 @@
-// Hauptskript für die Tattoo‑PWA. Dieses Modul kümmert sich um die
+// Hauptskript für die Tattoo-PWA. Dieses Modul kümmert sich um die
 // Darstellung der verschiedenen Seiten (Login, Registrierung, Dashboard) und
-// den Austausch mit der REST‑API.
+// den Austausch mit der REST-API.
 
 const API_BASE   = window.API_BASE || 'http://localhost:3001/api';
 const API_ORIGIN = API_BASE.replace(/\/api$/, '');
 const toAbs = (p) => (p && p.startsWith('/uploads/')) ? `${API_ORIGIN}${p}` : p;
 
-
 /**
- * Liest eine Datei und gibt sie als Data‑URL (Base64) zurück.
+ * Liest eine Datei und gibt sie als Data-URL (Base64) zurück.
  * @param {File} file
  * @returns {Promise<string>}
  */
@@ -20,8 +19,6 @@ function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 }
-
-// --- Am Anfang bleibt API_BASE etc. wie gehabt ---
 
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
@@ -65,7 +62,7 @@ function loadStudioConfig(studioId = null) {
       document.documentElement.style.setProperty('--accent-color', accent);
       document.documentElement.style.setProperty('--font-family', fontBody);
 
-      // Glass-Card Variablen kannst du je nach Studio auch differenzieren
+      // Glass-Card Variablen
       document.documentElement.style.setProperty('--card-bg', 'rgba(255,255,255,0.20)');
       document.documentElement.style.setProperty('--card-border', 'rgba(255,255,255,0.40)');
       document.documentElement.style.setProperty('--card-blur', '14px');
@@ -93,77 +90,97 @@ function loadStudioConfig(studioId = null) {
     });
 }
 
+/** Artists für das aktuell gewählte Studio laden (für Dropdown). */
+async function fetchArtistsForStudio() {
+  const params = new URLSearchParams(window.location.search);
+  const studioId = params.get('studio') || window.DEFAULT_STUDIO || null;
+  const url = studioId ? `${API_BASE}/artists?studio=${encodeURIComponent(studioId)}` : `${API_BASE}/artists`;
+  const res = await fetch(url);
+  return res.ok ? res.json() : [];
+}
 
 /**
- * Zeigt das Registrierungsformular für einen neuen Client.
+ * Zeigt das Registrierungsformular für einen neuen Client (mit Artist-Dropdown).
  * @param {string} clientId
  */
 function showRegisterForm(clientId) {
   const app = document.getElementById('app');
   app.innerHTML = '';
-  const form = document.createElement('div');
-  form.className = 'form-container';
-  form.innerHTML = `
-    <h2>Registrieren</h2>
-    <div class="form-group">
-      <label>Client‑ID</label>
-      <input type="text" id="reg-client-id" value="${clientId}" readonly />
-    </div>
-    <div class="form-group">
-      <label>Name</label>
-      <input type="text" id="reg-name" placeholder="Dein Name" />
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="reg-password" placeholder="Passwort" />
-    </div>
-    <div class="form-group">
-      <label>Artist‑ID</label>
-      <input type="text" id="reg-artist-id" placeholder="Zugewiesener Artist (optional)" />
-    </div>
-    <button id="reg-submit">Registrieren</button>
-    <p id="reg-message"></p>
-  `;
-  app.appendChild(form);
-  document.getElementById('reg-submit').addEventListener('click', () => {
-    const name = document.getElementById('reg-name').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const artistId = document.getElementById('reg-artist-id').value.trim();
-    if (!password) {
-      document.getElementById('reg-message').textContent = 'Bitte Passwort eingeben';
-      document.getElementById('reg-message').className = 'error';
-      return;
-    }
-    fetch(`${API_BASE}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId, password, name, artistId })
-    })
-      .then((resp) => resp.json())
-      .then((data) => {
-        if (data.success) {
-          document.getElementById('reg-message').textContent = 'Registrierung erfolgreich! Du kannst dich nun einloggen.';
-          document.getElementById('reg-message').className = 'success';
-          setTimeout(() => {
-            window.location.href = '/index.html';
-          }, 2000);
-        } else if (data.error) {
-          document.getElementById('reg-message').textContent = data.error;
-          document.getElementById('reg-message').className = 'error';
-        }
+
+  fetchArtistsForStudio().then((artists) => {
+    const form = document.createElement('div');
+    form.className = 'form-container';
+    form.innerHTML = `
+      <h2>Registrieren</h2>
+      <div class="form-group">
+        <label>Client-ID</label>
+        <input type="text" id="reg-client-id" value="${clientId}" readonly />
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="reg-name" placeholder="Dein Name" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Passwort" />
+      </div>
+      <div class="form-group">
+        <label>Artist auswählen</label>
+        <select id="reg-artist">
+          <option value="">Noch kein Artist</option>
+          ${artists.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+        </select>
+      </div>
+      <button id="reg-submit">Registrieren</button>
+      <p id="reg-message"></p>
+    `;
+    app.appendChild(form);
+
+    document.getElementById('reg-submit').addEventListener('click', () => {
+      const name = document.getElementById('reg-name').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const artistId = document.getElementById('reg-artist').value;
+      const studioId = window.__studio || window.DEFAULT_STUDIO || null;
+
+      if (!password) {
+        const m = document.getElementById('reg-message');
+        m.textContent = 'Bitte Passwort eingeben';
+        m.className = 'error';
+        return;
+      }
+
+      fetch(`${API_BASE}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, password, name, artistId, studioId })
       })
-      .catch((err) => {
-        document.getElementById('reg-message').textContent = 'Fehler bei der Registrierung';
-        document.getElementById('reg-message').className = 'error';
-        console.error(err);
-      });
+        .then((resp) => resp.json())
+        .then((data) => {
+          const m = document.getElementById('reg-message');
+          if (data.success) {
+            m.textContent = 'Registrierung erfolgreich! Du kannst dich nun einloggen.';
+            m.className = 'success';
+            const qs = studioId ? `?studio=${encodeURIComponent(studioId)}` : '';
+            setTimeout(() => { window.location.href = `/index.html${qs}`; }, 1200);
+          } else {
+            m.textContent = data.error || 'Fehler bei der Registrierung';
+            m.className = 'error';
+          }
+        })
+        .catch((err) => {
+          const m = document.getElementById('reg-message');
+          m.textContent = 'Fehler bei der Registrierung';
+          m.className = 'error';
+          console.error(err);
+        });
+    });
   });
 }
 
 /**
- * Zeigt eine Eingabeseite an, auf der der Nutzer zunächst seine Kunden‑ID
+ * Zeigt eine Eingabeseite an, auf der der Nutzer zunächst seine Kunden-ID
  * eingibt. Nach Bestätigung wird das eigentliche Registrierungsformular
- * angezeigt. Diese Funktion wird von der Login‑Seite aus aufgerufen.
+ * angezeigt.
  */
 function showInitialRegister() {
   const app = document.getElementById('app');
@@ -173,8 +190,8 @@ function showInitialRegister() {
   form.innerHTML = `
     <h2>Registrierung starten</h2>
     <div class="form-group">
-      <label>Kunden‑ID</label>
-      <input type="text" id="init-client-id" placeholder="ID vom Studio/QR‑Code" />
+      <label>Kunden-ID</label>
+      <input type="text" id="init-client-id" placeholder="ID vom Studio/QR-Code" />
     </div>
     <button id="init-reg-btn">Weiter</button>
     <button id="init-back-btn" type="button" style="margin-left:0.5rem">Zurück</button>
@@ -185,7 +202,7 @@ function showInitialRegister() {
     const cid = document.getElementById('init-client-id').value.trim();
     if (!cid) {
       const msg = document.getElementById('init-msg');
-      msg.textContent = 'Bitte die vom Studio bereitgestellte Kunden‑ID eingeben.';
+      msg.textContent = 'Bitte die vom Studio bereitgestellte Kunden-ID eingeben.';
       msg.className = 'error';
       return;
     }
@@ -197,8 +214,8 @@ function showInitialRegister() {
 }
 
 /**
- * Zeigt das Login‑Formular. Je nach ausgewählter Rolle (client/artist) wird
- * entweder das Kundendashboard oder die Artist‑Seite geladen.
+ * Zeigt das Login-Formular. Je nach ausgewählter Rolle (client/artist) wird
+ * entweder das Kundendashboard oder die Artist-Seite geladen.
  */
 function showLoginForm() {
   const app = document.getElementById('app');
@@ -208,7 +225,7 @@ function showLoginForm() {
   form.innerHTML = `
     <h2>Login</h2>
     <div class="form-group">
-      <label>User‑ID</label>
+      <label>User-ID</label>
       <input type="text" id="login-user-id" placeholder="Client oder Artist ID" />
     </div>
     <div class="form-group">
@@ -227,13 +244,17 @@ function showLoginForm() {
     <p id="login-message"></p>
   `;
   app.appendChild(form);
+
   document.getElementById('login-submit').addEventListener('click', () => {
     const userId = document.getElementById('login-user-id').value.trim();
     const password = document.getElementById('login-password').value;
     const role = document.getElementById('login-role').value;
+    const studioId = window.__studio || window.DEFAULT_STUDIO || null;
+
     if (!userId || !password) {
-      document.getElementById('login-message').textContent = 'Bitte alle Felder ausfüllen';
-      document.getElementById('login-message').className = 'error';
+      const m = document.getElementById('login-message');
+      m.textContent = 'Bitte alle Felder ausfüllen';
+      m.className = 'error';
       return;
     }
     fetch(`${API_BASE}/login`, {
@@ -243,26 +264,29 @@ function showLoginForm() {
     })
       .then((resp) => resp.json())
       .then((data) => {
+        const m = document.getElementById('login-message');
         if (data.success) {
           if (role === 'client') {
             loadClientDashboard(data.clientId || userId);
           } else {
-            // Artist‑Login: lade artist.html mit Parameter
-            window.location.href = `/artist.html?artistId=${encodeURIComponent(userId)}`;
+            // Artist-Login: lade artist.html mit Parametern (inkl. Studio)
+            const qsStudio = studioId ? `&studio=${encodeURIComponent(studioId)}` : '';
+            window.location.href = `/artist.html?artistId=${encodeURIComponent(userId)}${qsStudio}`;
           }
         } else {
-          document.getElementById('login-message').textContent = data.error || 'Fehler beim Login';
-          document.getElementById('login-message').className = 'error';
+          m.textContent = data.error || 'Fehler beim Login';
+          m.className = 'error';
         }
       })
       .catch((err) => {
-        document.getElementById('login-message').textContent = 'Fehler beim Login';
-        document.getElementById('login-message').className = 'error';
+        const m = document.getElementById('login-message');
+        m.textContent = 'Fehler beim Login';
+        m.className = 'error';
         console.error(err);
       });
   });
 
-  // Navigiert zur Registrierung, indem zunächst die Client‑ID abgefragt wird
+  // Navigiert zur Registrierung, indem zunächst die Client-ID abgefragt wird
   document.getElementById('show-register').addEventListener('click', () => {
     showInitialRegister();
   });
@@ -296,6 +320,7 @@ function buildClientUI(client) {
   const header = document.createElement('header');
   header.innerHTML = `<h1>Willkommen, ${client.name}</h1>`;
   app.appendChild(header);
+
   // Tabs
   const tabs = document.createElement('div');
   tabs.className = 'tabs';
@@ -303,7 +328,7 @@ function buildClientUI(client) {
     { id: 'appointments', title: 'Termine' },
     { id: 'ideas', title: 'Ideen' },
     { id: 'templates', title: 'Vorlagen' },
-    { id: 'aftercare', title: 'Tattoo‑Pflege' }
+    { id: 'aftercare', title: 'Tattoo-Pflege' }
   ];
   tabNames.forEach((t, idx) => {
     const tab = document.createElement('div');
@@ -319,8 +344,10 @@ function buildClientUI(client) {
     tabs.appendChild(tab);
   });
   app.appendChild(tabs);
+
   // Sections container
   const container = document.createElement('main');
+
   // Termine
   const apptSec = document.createElement('div');
   apptSec.id = 'appointments';
@@ -343,12 +370,13 @@ function buildClientUI(client) {
     apptSec.innerHTML += '<p>Keine Termine vorhanden.</p>';
   }
   container.appendChild(apptSec);
+
   // Ideen
   const ideasSec = document.createElement('div');
   ideasSec.id = 'ideas';
   ideasSec.className = 'section';
   ideasSec.innerHTML = '<h2>Ideen hochladen</h2>';
-  // Upload‑Formular
+  // Upload-Formular
   const ideaForm = document.createElement('div');
   ideaForm.innerHTML = `
     <input type="file" id="idea-files" multiple accept="image/*" />
@@ -364,22 +392,24 @@ function buildClientUI(client) {
       const item = document.createElement('div');
       item.className = 'image-item';
       const img = document.createElement('img');
-      img.src = idea.url || idea.path;
-      img.alt = idea.filename;
+      img.src = toAbs(idea.url || idea.path);
+      img.alt = idea.filename || 'Idee';
       item.appendChild(img);
       ideaList.appendChild(item);
     });
   }
   ideasSec.appendChild(ideaList);
   container.appendChild(ideasSec);
-  // Upload-Handler
+
+  // Upload-Handler (Ideen)
   document.addEventListener('click', (event) => {
     if (event.target && event.target.id === 'idea-upload-btn') {
       const fileInput = document.getElementById('idea-files');
       const files = fileInput.files;
       if (!files || files.length === 0) {
-        document.getElementById('idea-msg').textContent = 'Bitte Bilder auswählen';
-        document.getElementById('idea-msg').className = 'error';
+        const m = document.getElementById('idea-msg');
+        m.textContent = 'Bitte Bilder auswählen';
+        m.className = 'error';
         return;
       }
       // Dateien als Base64 lesen
@@ -392,23 +422,26 @@ function buildClientUI(client) {
         })
           .then((resp) => resp.json())
           .then((data) => {
+            const m = document.getElementById('idea-msg');
             if (data.success) {
-              document.getElementById('idea-msg').textContent = 'Bilder erfolgreich hochgeladen';
-              document.getElementById('idea-msg').className = 'success';
+              m.textContent = 'Bilder erfolgreich hochgeladen';
+              m.className = 'success';
               loadClientDashboard(client.id);
             } else {
-              document.getElementById('idea-msg').textContent = data.error || 'Fehler beim Upload';
-              document.getElementById('idea-msg').className = 'error';
+              m.textContent = data.error || 'Fehler beim Upload';
+              m.className = 'error';
             }
           })
           .catch((err) => {
-            document.getElementById('idea-msg').textContent = 'Fehler beim Upload';
-            document.getElementById('idea-msg').className = 'error';
+            const m = document.getElementById('idea-msg');
+            m.textContent = 'Fehler beim Upload';
+            m.className = 'error';
             console.error(err);
           });
       });
     }
   });
+
   // Vorlagen
   const tmplSec = document.createElement('div');
   tmplSec.id = 'templates';
@@ -422,8 +455,8 @@ function buildClientUI(client) {
       const item = document.createElement('div');
       item.className = 'image-item';
       const img = document.createElement('img');
-      img.src = tmpl.url || tmpl.path;
-      img.alt = tmpl.filename;
+      img.src = toAbs(tmpl.url || tmpl.path);
+      img.alt = tmpl.filename || 'Vorlage';
       item.appendChild(img);
       // Bewertungsbuttons
       const ratingDiv = document.createElement('div');
@@ -452,20 +485,25 @@ function buildClientUI(client) {
     tmplSec.innerHTML += '<p>Noch keine Vorlagen vorhanden.</p>';
   }
   tmplSec.appendChild(tmplList);
+
   // finale Vorlage anzeigen
   if (client.finalTemplate) {
     const finalDiv = document.createElement('div');
     finalDiv.className = 'card';
-    finalDiv.innerHTML = `<h3>Finale Vorlage</h3><img src="${client.finalTemplate.url || client.finalTemplate.path}" alt="Finale Vorlage" style="max-width:100%;height:auto;border-radius:4px;" />`;
+    finalDiv.innerHTML = `<h3>Finale Vorlage</h3>
+      <img src="${toAbs(client.finalTemplate.url || client.finalTemplate.path)}"
+           alt="Finale Vorlage"
+           style="max-width:100%;height:auto;border-radius:4px;" />`;
     tmplSec.appendChild(finalDiv);
   }
   container.appendChild(tmplSec);
-  // Tattoo‑Pflege
+
+  // Tattoo-Pflege
   const careSec = document.createElement('div');
   careSec.id = 'aftercare';
   careSec.className = 'section';
-  careSec.innerHTML = '<h2>Tattoo‑Pflege</h2>';
-  // Aftercare‑Tipps laden
+  careSec.innerHTML = '<h2>Tattoo-Pflege</h2>';
+  // Aftercare-Tipps laden
   fetch(`${API_BASE}/aftercare`)
     .then((resp) => resp.json())
     .then((data) => {
@@ -476,7 +514,8 @@ function buildClientUI(client) {
         careSec.appendChild(card);
       });
     })
-    .catch((err) => console.error('Fehler beim Laden der Aftercare‑Tipps', err));
+    .catch((err) => console.error('Fehler beim Laden der Aftercare-Tipps', err));
+
   // Formular zum Hochladen von Heilungsbildern
   const healForm = document.createElement('div');
   healForm.className = 'card';
@@ -488,6 +527,7 @@ function buildClientUI(client) {
     <p id="heal-msg"></p>
   `;
   careSec.appendChild(healForm);
+
   // Liste der Heilungsanfragen anzeigen
   if (client.healing && client.healing.length > 0) {
     client.healing
@@ -504,8 +544,8 @@ function buildClientUI(client) {
           const imgItem = document.createElement('div');
           imgItem.className = 'image-item';
           const im = document.createElement('img');
-          im.src = img.url || img.path;
-          im.alt = img.filename;
+          im.src = toAbs(img.url || img.path);
+          im.alt = img.filename || 'Heilungsbild';
           imgItem.appendChild(im);
           imgList.appendChild(imgItem);
         });
@@ -527,14 +567,16 @@ function buildClientUI(client) {
   }
   container.appendChild(careSec);
   app.appendChild(container);
+
   // Eventlistener für Heilungsupload
   document.addEventListener('click', (e) => {
     if (e.target && e.target.id === 'heal-upload-btn') {
       const files = document.getElementById('heal-files').files;
       const comment = document.getElementById('heal-comment').value;
       if (!files || files.length === 0) {
-        document.getElementById('heal-msg').textContent = 'Bitte Bilder auswählen';
-        document.getElementById('heal-msg').className = 'error';
+        const m = document.getElementById('heal-msg');
+        m.textContent = 'Bitte Bilder auswählen';
+        m.className = 'error';
         return;
       }
       Promise.all(Array.from(files).map((file) => fileToBase64(file))).then((base64Files) => {
@@ -546,18 +588,20 @@ function buildClientUI(client) {
         })
           .then((resp) => resp.json())
           .then((data) => {
+            const m = document.getElementById('heal-msg');
             if (data.success) {
-              document.getElementById('heal-msg').textContent = 'Bilder erfolgreich übermittelt';
-              document.getElementById('heal-msg').className = 'success';
+              m.textContent = 'Bilder erfolgreich übermittelt';
+              m.className = 'success';
               loadClientDashboard(client.id);
             } else {
-              document.getElementById('heal-msg').textContent = data.error || 'Fehler beim Upload';
-              document.getElementById('heal-msg').className = 'error';
+              m.textContent = data.error || 'Fehler beim Upload';
+              m.className = 'error';
             }
           })
           .catch((err) => {
-            document.getElementById('heal-msg').textContent = 'Fehler beim Upload';
-            document.getElementById('heal-msg').className = 'error';
+            const m = document.getElementById('heal-msg');
+            m.textContent = 'Fehler beim Upload';
+            m.className = 'error';
             console.error(err);
           });
       });

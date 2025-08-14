@@ -4,6 +4,7 @@
       "id": "demo-client",
       "name": "Andi",
       "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "studioId": "exclusive-ink",
       "artistId": "demo-artist",
       "appointments": [
         {
@@ -22,40 +23,47 @@
       "ideas": [],
       "templates": [],
       "finalTemplate": null,
-      "healing": []
+      "healing": [],
+      "messages": []
     },
     {
       "id": "testclient",
       "name": "Kunde",
       "password": "13d249f2cb4127b40cfa757866850278793f814ded3c587fe5889e889a7a9f6c",
+      "studioId": "exclusive-ink",
       "artistId": "",
       "appointments": [],
       "ideas": [],
       "templates": [],
       "finalTemplate": null,
-      "healing": []
+      "healing": [],
+      "messages": []
     },
     {
       "id": "321654",
       "name": "Andi",
       "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "studioId": "monkeybrothers",
       "artistId": "",
       "appointments": [],
       "ideas": [],
       "templates": [],
       "finalTemplate": null,
-      "healing": []
+      "healing": [],
+      "messages": []
     },
     {
       "id": "123",
       "name": "Andi",
       "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "studioId": "secret-ink",
       "artistId": "greta",
       "appointments": [],
       "ideas": [],
       "templates": [],
       "finalTemplate": null,
-      "healing": []
+      "healing": [],
+      "messages": []
     }
   ],
   "artists": [
@@ -63,7 +71,19 @@
       "id": "demo-artist",
       "name": "Demo Artist",
       "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
-      "studioName": "Demo Studio"
+      "studioId": "exclusive-ink"
+    },
+    {
+      "id": "greta",
+      "name": "Greta",
+      "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
+      "studioId": "secret-ink"
+    },
+    {
+      "id": "jax",
+      "name": "Jax",
+      "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
+      "studioId": "monkeybrothers"
     }
   ],
   "studioConfig": {
