@@ -1,16 +1,25 @@
 /*
- * Service Worker für die Tattoo‑PWA. Er kümmert sich um das Zwischenspeichern
- * statischer Ressourcen und ermöglicht das Offline‑Verhalten. Die Liste der
- * zu cachenden Dateien wird beim Installieren des Service Workers definiert.
+ * Service Worker für die Tattoo-PWA (Render Static Site).
+ * - Cache-Version bumpen, nur gleiche Origin cachen
+ * - API-/Fremd-Requests nicht anfassen
+ * - SPA: Navigation fällt offline auf /index.html zurück
  */
 
-const CACHE_NAME = 'tattoo-pwa-v1';
+const VERSION = 'v6'; // <— bei jedem Frontend-Update erhöhen
+const CACHE_NAME = `tattoo-pwa-${VERSION}`;
+
 const OFFLINE_URLS = [
-  '/',
+  '/',                // Render mappt das auf /index.html
   '/index.html',
+  '/studio.html',
+  '/artist.html',
   '/style.css',
   '/theme.css',
+  '/config.js',
   '/script.js',
+  '/studio.js',
+  '/artist.js',
+  '/assets/marble-bg.png',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
@@ -18,38 +27,51 @@ const OFFLINE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(OFFLINE_URLS);
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(OFFLINE_URLS))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+    caches.keys()
+      .then((names) =>
+        Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+      )
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  // Für API‑Aufrufe versuchen wir immer, online zu gehen
-  if (request.url.includes('/api/')) {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Nur GET-Anfragen cachen
+  if (req.method !== 'GET') return;
+
+  // API und Cross-Origin nicht cachen → direkt ins Netz
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
+    return; // Browser macht normalen Fetch
+  }
+
+  // SPA-Navigation: bei Offline → /index.html aus dem Cache
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req).catch(() => caches.match('/index.html'))
+    );
     return;
   }
+
+  // Statische Ressourcen: cache first, dann Netzwerk + nachcachen
   event.respondWith(
-    caches.match(request).then((response) => {
-      return response || fetch(request).then((fetchResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, fetchResponse.clone());
-          return fetchResponse;
-        });
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((resp) => {
+        const copy = resp.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        return resp;
       });
-    }).catch(() => caches.match('/index.html'))
+    })
   );
 });
