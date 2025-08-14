@@ -1,7 +1,9 @@
 // Script für den Artist‑Bereich. Künstler können hier ihre Kunden
 // verwalten, Vorlagen hochladen und auf Heilungsanfragen reagieren.
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE   = window.API_BASE || 'http://localhost:3001/api';
+const API_ORIGIN = API_BASE.replace(/\/api$/, '');
+const toAbs = (p) => (p && p.startsWith('/uploads/')) ? `${API_ORIGIN}${p}` : p;
 
 /**
  * Liest eine Datei und gibt sie als Data‑URL (Base64) zurück.
