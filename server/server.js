@@ -85,10 +85,6 @@ async function readBody(req) {
   });
 }
 
-function ensureArray(a) {
-  if (!a) return [];
-  return Array.isArray(a) ? a : [a];
-}
 
 function saveDataUrlToFile(dataUrl, targetDir) {
   // dataUrl: "data:image/png;base64,...."
@@ -135,11 +131,7 @@ function findStudio(data, id) {
 
 function ensureArray(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
 
-function ensureArtist(data, artistId) {
-  const a = (data.artists || []).find((x) => x.id === artistId);
-  if (a && !a.wannado) a.wannado = [];
-  return a;
-}
+
 
 
 // --- Server & Routing --------------------------------------------------------
