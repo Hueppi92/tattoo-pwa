@@ -17,12 +17,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_PATH = path.join(__dirname, 'data.json');
 const UPLOAD_ROOT = path.join(__dirname, 'uploads');
 const UPLOAD_DIRS = {
+  wannado: path.join(UPLOAD_ROOT, 'wannado'),
   ideas: path.join(UPLOAD_ROOT, 'ideas'),
   templates: path.join(UPLOAD_ROOT, 'templates'),
   final: path.join(UPLOAD_ROOT, 'final'),
   healing: path.join(UPLOAD_ROOT, 'healing'),
 };
-Object.values(UPLOAD_DIRS).forEach((p) => fs.mkdirSync(p, { recursive: true }));
+// Nach deinen bestehenden UPLOAD_DIRS:
+UPLOAD_DIRS.wannado = path.join(UPLOAD_ROOT, 'wannado');
+
+// Verzeichnisse sicherstellen:
+Object.values(UPLOAD_DIRS).forEach((p) => {
+  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+});
+
 
 function readJSON() {
   if (!fs.existsSync(DATA_PATH)) {
@@ -124,6 +132,15 @@ function getStudios(data) {
 function findStudio(data, id) {
   return getStudios(data).find((s) => s.id === id);
 }
+
+function ensureArray(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
+
+function ensureArtist(data, artistId) {
+  const a = (data.artists || []).find((x) => x.id === artistId);
+  if (a && !a.wannado) a.wannado = [];
+  return a;
+}
+
 
 // --- Server & Routing --------------------------------------------------------
 const server = http.createServer(async (req, res) => {
@@ -335,10 +352,95 @@ if (parts[1] === 'artist' && parts[2] === 'register' && method === 'POST') {
 
   
   // --- ARTISTS --------------------------------------------------------------
-  // GET /api/artist/clients
-  if (parts[1] === 'artist' && parts[2] === 'clients' && method === 'GET') {
-    return sendJSON(res, 200, data.clients || []);
-  }
+// GET /api/artist/:id/appointments
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'appointments' && method === 'GET') {
+  const artistId = parts[2];
+  const list = (data.clients || [])
+    .filter(c => c.artistId === artistId)
+    .flatMap(c => (c.appointments || []).map(a => ({
+      ...a, clientId: c.id, clientName: c.name
+    })))
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  return sendJSON(res, 200, list);
+}
+
+// GET /api/artist/:id/clients   (präziser als die alte globale Liste)
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'clients' && method === 'GET') {
+  const artistId = parts[2];
+  const list = (data.clients || []).filter(c => c.artistId === artistId);
+  return sendJSON(res, 200, list);
+}
+
+// GET /api/artist/:id/wannado
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'wannado' && method === 'GET' && parts.length === 4) {
+  const a = (data.artists || []).find(x => x.id === parts[2]);
+  if (!a) return sendJSON(res, 404, { error: 'Artist nicht gefunden' });
+  return sendJSON(res, 200, a.wannado || []);
+}
+
+// POST /api/artist/:id/wannado  { images:[{name,data}] }
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'wannado' && method === 'POST') {
+  const artistId = parts[2];
+  const a = ensureArtist(data, artistId);
+  if (!a) return sendJSON(res, 404, { error: 'Artist nicht gefunden' });
+  const body = await readBody(req);
+  const images = ensureArray(body.images);
+  const saved = [];
+  images.forEach((im) => {
+    const s = saveDataUrlToFile(im.data, UPLOAD_DIRS.wannado);
+    if (s) saved.push({ id: s.id, filename: im.name || s.filename, path: s.path });
+  });
+  a.wannado.push(...saved);
+  writeJSON(data);
+  return sendJSON(res, 200, { success: true, uploaded: saved.length });
+}
+
+// GET /api/client/:id/artist/wannado   -> Kunde sieht Wanna-Do seines Artists
+if (parts[1] === 'client' && parts[2] && parts[3] === 'artist' && parts[4] === 'wannado' && method === 'GET') {
+  const c = (data.clients || []).find(x => x.id === parts[2]);
+  if (!c) return sendJSON(res, 404, { error: 'Client nicht gefunden' });
+  if (!c.artistId) return sendJSON(res, 200, []);
+  const a = (data.artists || []).find(x => x.id === c.artistId);
+  return sendJSON(res, 200, (a && a.wannado) ? a.wannado : []);
+}
+
+// Datenfeld initialisieren, falls nicht vorhanden
+function ensureArtist(data, artistId) {
+  const a = findArtist(data, artistId);
+  if (a && !a.wannado) a.wannado = [];
+  return a;
+}
+
+// GET /api/artist/:id/wannado
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'wannado' && method === 'GET' && parts.length === 4) {
+  const a = findArtist(data, parts[2]);
+  if (!a) return sendJSON(res, 404, { error: 'Artist nicht gefunden' });
+  return sendJSON(res, 200, a.wannado || []);
+}
+
+// POST /api/artist/:id/wannado  { images:[{name,data}] }
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'wannado' && method === 'POST') {
+  const a = ensureArtist(data, parts[2]);
+  if (!a) return sendJSON(res, 404, { error: 'Artist nicht gefunden' });
+  const { images } = await readBody(req);
+  const saved = [];
+  ensureArray(images).forEach(im => {
+    const s = saveDataUrlToFile(im.data, UPLOAD_DIRS.wannado);
+    if (s) saved.push({ id: s.id, filename: im.name || s.filename, path: s.path });
+  });
+  a.wannado.push(...saved);
+  writeJSON(data);
+  return sendJSON(res, 200, { success:true, uploaded:saved.length });
+}
+
+// GET /api/client/:id/artist/wannado  -> sieht die Wanna-Do's seines Artists
+if (parts[1] === 'client' && parts[2] && parts[3] === 'artist' && parts[4] === 'wannado' && method === 'GET') {
+  const c = findClient(data, parts[2]);
+  if (!c) return sendJSON(res, 404, { error:'Client nicht gefunden' });
+  const a = c.artistId ? findArtist(data, c.artistId) : null;
+  return sendJSON(res, 200, (a && a.wannado) ? a.wannado : []);
+}
+
 
   // --- AFTERCARE ------------------------------------------------------------
   if (parts[1] === 'aftercare' && method === 'GET') {

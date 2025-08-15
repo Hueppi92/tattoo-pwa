@@ -1,15 +1,11 @@
-// Script für den Artist-Bereich. Künstler können hier ihre Kunden
-// verwalten, Vorlagen hochladen und auf Heilungsanfragen reagieren.
+// Script für den Artist-Bereich. Künstler verwalten Kunden, Vorlagen,
+// Wanna-Do-Galerie und beantworten Heilungsanfragen.
 
 const API_BASE   = window.API_BASE || 'http://localhost:3001/api';
 const API_ORIGIN = API_BASE.replace(/\/api$/, '');
 const toAbs = (p) => (p && p.startsWith('/uploads/')) ? `${API_ORIGIN}${p}` : p;
 
-/**
- * Liest eine Datei und gibt sie als Data-URL (Base64) zurück.
- * @param {File} file
- * @returns {Promise<string>}
- */
+/** Datei -> Base64 (DataURL) */
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -19,113 +15,175 @@ function fileToBase64(file) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const studioId = params.get('studio') || window.DEFAULT_STUDIO || null;
-
-  // Theme konfigurieren (multi-tenant aware)
-  loadStudioConfig(studioId);
-
-  const artistId = params.get('artistId');
-  if (!artistId) {
-    // zurück zur Login-Seite, Studio-ID beibehalten
-    const qs = studioId ? `?studio=${encodeURIComponent(studioId)}` : '';
-    window.location.href = `/index.html${qs}`;
-    return;
-  }
-  loadArtistDashboard(artistId);
-});
-
+/** Studio-Theme laden & anwenden */
 function loadStudioConfig(studioId = null) {
   const endpoint = studioId
     ? `${API_BASE}/studio/${studioId}/config`
     : `${API_BASE}/studio/config`;
 
-  fetch(endpoint)
+  return fetch(endpoint)
     .then((resp) => resp.ok ? resp.json() : {})
-    .then((config) => {
-      if (config.primaryColor)   document.documentElement.style.setProperty('--primary-color', config.primaryColor);
-      if (config.secondaryColor) document.documentElement.style.setProperty('--secondary-color', config.secondaryColor);
-      if (config.accentColor)    document.documentElement.style.setProperty('--accent-color', config.accentColor);
-      if (config.fontBody)       document.documentElement.style.setProperty('--font-family', config.fontBody);
-      if (config.bg) {
-        document.body.style.backgroundImage = `url('${config.bg}')`;
+    .then((cfg) => {
+      if (cfg.primaryColor)   document.documentElement.style.setProperty('--primary-color', cfg.primaryColor);
+      if (cfg.secondaryColor) document.documentElement.style.setProperty('--secondary-color', cfg.secondaryColor);
+      if (cfg.accentColor)    document.documentElement.style.setProperty('--accent-color', cfg.accentColor);
+      if (cfg.fontBody)       document.documentElement.style.setProperty('--font-family', cfg.fontBody);
+      if (cfg.bg) {
+        document.body.style.backgroundImage = `url('${cfg.bg}')`;
         document.body.style.backgroundRepeat = 'no-repeat';
         document.body.style.backgroundSize = 'cover';
         document.body.style.backgroundAttachment = 'fixed';
       }
     })
-    .catch((err) => console.error('Fehler beim Laden der Studio-Konfiguration:', err));
+    .catch(() => {});
 }
 
-/**
- * Lädt die Artist-UI mit der Liste der Kunden.
- * @param {string} artistId
- */
+/** Einstieg */
+document.addEventListener('DOMContentLoaded', () => {
+  const params   = new URLSearchParams(window.location.search);
+  const studioId = params.get('studio') || window.DEFAULT_STUDIO || null;
+  const artistId = params.get('artistId');
+
+  loadStudioConfig(studioId).finally(() => {
+    if (!artistId) {
+      const qs = studioId ? `?studio=${encodeURIComponent(studioId)}` : '';
+      // Zur Artist-Loginseite (statt Kunden-Login)
+      window.location.href = `/artist-login.html${qs}`;
+      return;
+    }
+    loadArtistDashboard(artistId);
+  });
+});
+
+/** Dashboard-Startseite für Artist (mit Tabs) */
 function loadArtistDashboard(artistId) {
   const app = document.getElementById('artist-app');
   app.innerHTML = '';
-  // Header
+
   const header = document.createElement('header');
   header.innerHTML = `<h1>Artist-Bereich</h1><p>Angemeldet als ${artistId}</p>`;
   app.appendChild(header);
-  // Container
-  const main = document.createElement('main');
-  main.innerHTML = '<h2>Meine Kunden</h2>';
-  // Liste der Clients laden
-  fetch(`${API_BASE}/artist/${artistId}/clients`)
-  .then((resp) => resp.json())
-  .then((clients) => {
 
-      const list = document.createElement('div');
-      clients
-        .filter((c) => !c.artistId || c.artistId === artistId)
-        .forEach((client) => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.style.cursor = 'pointer';
-          card.innerHTML = `<strong>${client.name}</strong><br /><span>ID: ${client.id}</span>`;
-          card.addEventListener('click', () => {
-            showClientDetails(artistId, client.id);
-          });
-          list.appendChild(card);
-        });
-      if (list.children.length === 0) {
-        main.innerHTML += '<p>Keine zugewiesenen Kunden.</p>';
-      } else {
-        main.appendChild(list);
-      }
-    })
-    .catch((err) => {
-      console.error('Fehler beim Laden der Clients', err);
-    });
+  const main = document.createElement('main');
   app.appendChild(main);
+
+  renderArtistTabs(main, artistId);
 }
 
-/**
- * Zeigt die Details eines ausgewählten Kunden und ermöglicht dem Artist das
- * Hochladen von Vorlagen, das Setzen einer finalen Vorlage sowie das
- * Kommentieren von Heilungsanfragen.
- * @param {string} artistId
- * @param {string} clientId
- */
+/** Tabs: Termine | Kunden | Wanna-Do */
+function renderArtistTabs(container, artistId) {
+  const tabs = document.createElement('div');
+  tabs.className = 'tabs';
+  tabs.innerHTML = `
+    <div class="tab active" data-t="apts">Termine</div>
+    <div class="tab" data-t="clients">Kunden</div>
+    <div class="tab" data-t="wannado">Wanna-Do</div>
+  `;
+  container.appendChild(tabs);
+
+  const secA = document.createElement('section'); secA.className='section active'; secA.id='sec-apts';
+  const secB = document.createElement('section'); secB.className='section';        secB.id='sec-clients';
+  const secC = document.createElement('section'); secC.className='section';        secC.id='sec-wannado';
+  container.appendChild(secA); container.appendChild(secB); container.appendChild(secC);
+
+  // Termine laden
+  fetch(`${API_BASE}/artist/${artistId}/appointments`).then(r=>r.json()).then(list=>{
+    secA.innerHTML = '<h2>Termine</h2>';
+    if (!list.length) { secA.innerHTML += '<p>Keine Termine.</p>'; return; }
+    list.forEach(a=>{
+      const card = document.createElement('div'); card.className='card';
+      const d = new Date(a.date);
+      card.innerHTML = `<strong>${d.toLocaleDateString()} – ${a.type || ''}</strong>
+                        <div>${a.clientName} (${a.clientId})</div>
+                        <div>${a.description || ''}</div>`;
+      secA.appendChild(card);
+    });
+  });
+
+  // Kundenliste
+  secB.innerHTML = '<h2>Meine Kunden</h2>';
+  fetch(`${API_BASE}/artist/${artistId}/clients`).then(r=>r.json()).then(clients=>{
+    if (!clients.length) { secB.innerHTML += '<p>Keine zugewiesenen Kunden.</p>'; return; }
+    const list = document.createElement('div');
+    clients.forEach(c=>{
+      const card = document.createElement('div'); card.className='card'; card.style.cursor='pointer';
+      card.innerHTML = `<strong>${c.name}</strong><br/><span>ID: ${c.id}</span>`;
+      card.addEventListener('click',()=> showClientDetails(artistId, c.id));
+      list.appendChild(card);
+    });
+    secB.appendChild(list);
+  });
+
+  // Wanna-Do: Upload + Galerie
+  secC.innerHTML = `
+    <h2>Wanna-Do Galerie</h2>
+    <div class="card">
+      <input type="file" id="wd-files" multiple accept="image/*" />
+      <button id="wd-upload">Hochladen</button>
+      <p id="wd-msg"></p>
+    </div>
+    <div id="wd-list" class="image-list"></div>
+  `;
+  const renderWD = ()=> {
+    fetch(`${API_BASE}/artist/${artistId}/wannado`).then(r=>r.json()).then(items=>{
+      const list = document.getElementById('wd-list');
+      list.innerHTML = '';
+      items.forEach(it=>{
+        const item = document.createElement('div'); item.className='image-item';
+        const img = document.createElement('img'); img.src = toAbs(it.path); img.alt = it.filename || 'Wanna-Do';
+        item.appendChild(img); list.appendChild(item);
+      });
+    });
+  };
+  renderWD();
+
+  secC.querySelector('#wd-upload').addEventListener('click', async ()=>{
+    const files = secC.querySelector('#wd-files').files;
+    const msg = secC.querySelector('#wd-msg');
+    if (!files || !files.length) { msg.textContent='Bitte Dateien wählen'; msg.className='error'; return; }
+    const base64 = await Promise.all(Array.from(files).map(fileToBase64));
+    const images = base64.map((data, i)=>({ name: files[i].name, data }));
+    const res = await fetch(`${API_BASE}/artist/${artistId}/wannado`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ images })
+    }).then(r=>r.json()).catch(()=>({}));
+    if (res && res.success) { msg.textContent='Hochgeladen'; msg.className='success'; renderWD(); }
+    else { msg.textContent='Upload fehlgeschlagen'; msg.className='error'; }
+  });
+
+  // Tab switching
+  tabs.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      tabs.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const target = t.dataset.t;
+      [secA,secB,secC].forEach(s=>s.classList.remove('active'));
+      document.getElementById(`sec-${target}`).classList.add('active');
+    });
+  });
+}
+
+/** Kunden-Detailansicht: Ideen, Vorlagen, Finale, Heilung */
 function showClientDetails(artistId, clientId) {
   const app = document.getElementById('artist-app');
   app.innerHTML = '';
+
   const header = document.createElement('header');
   header.innerHTML = `<h1>Artist-Bereich</h1><button id="back-btn">Zurück</button>`;
   app.appendChild(header);
   document.getElementById('back-btn').addEventListener('click', () => {
     loadArtistDashboard(artistId);
   });
+
   const main = document.createElement('main');
-  // Kundendaten laden
+  app.appendChild(main);
+
+  // Kundendaten
   fetch(`${API_BASE}/client/${clientId}`)
     .then((resp) => resp.json())
     .then((client) => {
       main.innerHTML = `<h2>${client.name}</h2>`;
 
-      // Ideen anzeigen
+      // Ideen ansehen
       const ideaSec = document.createElement('div');
       ideaSec.className = 'card';
       ideaSec.innerHTML = '<h3>Ideen des Kunden</h3>';
@@ -158,7 +216,7 @@ function showClientDetails(artistId, clientId) {
       `;
       main.appendChild(uploadSec);
 
-      // Finale Vorlage hochladen
+      // Finale Vorlage setzen
       const finalSec = document.createElement('div');
       finalSec.className = 'card';
       finalSec.innerHTML = `
@@ -169,7 +227,7 @@ function showClientDetails(artistId, clientId) {
       `;
       main.appendChild(finalSec);
 
-      // Bisherige Vorlagen anzeigen
+      // Bisherige Vorlagen
       const tmplSec = document.createElement('div');
       tmplSec.className = 'card';
       tmplSec.innerHTML = '<h3>Bereits hochgeladene Vorlagen</h3>';
@@ -183,7 +241,6 @@ function showClientDetails(artistId, clientId) {
           img.src = toAbs(tmpl.url || tmpl.path);
           img.alt = tmpl.filename || 'Vorlage';
           item.appendChild(img);
-          // Zeige Bewertung des Kunden
           const rating = document.createElement('span');
           rating.style.display = 'block';
           rating.textContent = tmpl.rating ? `Bewertung: ${tmpl.rating}` : '';
@@ -207,7 +264,7 @@ function showClientDetails(artistId, clientId) {
       }
       main.appendChild(tmplSec);
 
-      // Heilungsanfragen anzeigen
+      // Heilungsanfragen
       const healSec = document.createElement('div');
       healSec.className = 'card';
       healSec.innerHTML = '<h3>Heilungsanfragen</h3>';
@@ -219,10 +276,10 @@ function showClientDetails(artistId, clientId) {
             card.className = 'card';
             const date = new Date(entry.createdAt);
             card.innerHTML = `<strong>Anfrage vom ${date.toLocaleDateString()}</strong><p>${entry.comment || ''}</p>`;
-            // Bilder
+
             const imgList = document.createElement('div');
             imgList.className = 'image-list';
-            entry.images.forEach((img) => {
+            (entry.images || []).forEach((img) => {
               const item = document.createElement('div');
               item.className = 'image-item';
               const im = document.createElement('img');
@@ -232,6 +289,7 @@ function showClientDetails(artistId, clientId) {
               imgList.appendChild(item);
             });
             card.appendChild(imgList);
+
             // Vorhandene Antworten
             if (entry.responses && entry.responses.length > 0) {
               entry.responses.forEach((resp) => {
@@ -241,14 +299,18 @@ function showClientDetails(artistId, clientId) {
                 card.appendChild(p);
               });
             }
+
             // Antwortformular
             const respInput = document.createElement('input');
             respInput.type = 'text';
             respInput.placeholder = 'Antwort eingeben';
             respInput.style.width = '100%';
+
             const respBtn = document.createElement('button');
             respBtn.textContent = 'Antwort senden';
+
             const msg = document.createElement('p');
+
             respBtn.addEventListener('click', () => {
               const comment = respInput.value.trim();
               if (!comment) return;
@@ -274,6 +336,7 @@ function showClientDetails(artistId, clientId) {
                   console.error(err);
                 });
             });
+
             card.appendChild(respInput);
             card.appendChild(respBtn);
             card.appendChild(msg);
@@ -283,75 +346,46 @@ function showClientDetails(artistId, clientId) {
         healSec.innerHTML += '<p>Keine Heilungsanfragen.</p>';
       }
       main.appendChild(healSec);
-      app.appendChild(main);
 
-      // Eventlistener für Upload von Vorlagen
-      document.getElementById('tmpl-upload-btn').addEventListener('click', () => {
-        const files = document.getElementById('tmpl-files').files;
-        if (!files || files.length === 0) {
-          document.getElementById('tmpl-msg').textContent = 'Bitte Dateien auswählen';
-          document.getElementById('tmpl-msg').className = 'error';
-          return;
-        }
-        Promise.all(Array.from(files).map((file) => fileToBase64(file))).then((base64Files) => {
-          const templates = base64Files.map((data, idx) => ({ name: files[idx].name, data }));
-          fetch(`${API_BASE}/client/${clientId}/templates`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ templates })
+      // Events: Vorlagen hochladen
+      main.querySelector('#tmpl-upload-btn').addEventListener('click', async () => {
+        const files = main.querySelector('#tmpl-files').files;
+        const m = main.querySelector('#tmpl-msg');
+        if (!files || !files.length) { m.textContent='Bitte Dateien auswählen'; m.className='error'; return; }
+        const base64Files = await Promise.all(Array.from(files).map(fileToBase64));
+        const templates = base64Files.map((data, idx) => ({ name: files[idx].name, data }));
+        fetch(`${API_BASE}/client/${clientId}/templates`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ templates })
+        })
+          .then((resp) => resp.json())
+          .then((data) => {
+            if (data.success) { m.textContent='Vorlagen hochgeladen'; m.className='success'; showClientDetails(artistId, clientId); }
+            else { m.textContent=data.error || 'Fehler beim Upload'; m.className='error'; }
           })
-            .then((resp) => resp.json())
-            .then((data) => {
-              if (data.success) {
-                document.getElementById('tmpl-msg').textContent = 'Vorlagen hochgeladen';
-                document.getElementById('tmpl-msg').className = 'success';
-                showClientDetails(artistId, clientId);
-              } else {
-                document.getElementById('tmpl-msg').textContent = data.error || 'Fehler beim Upload';
-                document.getElementById('tmpl-msg').className = 'error';
-              }
-            })
-            .catch((err) => {
-              document.getElementById('tmpl-msg').textContent = 'Fehler beim Upload';
-              document.getElementById('tmpl-msg').className = 'error';
-              console.error(err);
-            });
-        });
+          .catch(() => { m.textContent='Fehler beim Upload'; m.className='error'; });
       });
 
-      // Eventlistener für finalen Upload
-      document.getElementById('final-upload-btn').addEventListener('click', () => {
-        const fileInput = document.getElementById('final-file');
-        const file = fileInput.files[0];
-        if (!file) {
-          document.getElementById('final-msg').textContent = 'Bitte eine Datei auswählen';
-          document.getElementById('final-msg').className = 'error';
-          return;
-        }
-        fileToBase64(file).then((dataUrl) => {
-          const final = { name: file.name, data: dataUrl };
-          fetch(`${API_BASE}/client/${clientId}/final`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ final })
+      // Events: Finale Vorlage
+      main.querySelector('#final-upload-btn').addEventListener('click', async () => {
+        const input = main.querySelector('#final-file');
+        const m = main.querySelector('#final-msg');
+        const file = input.files[0];
+        if (!file) { m.textContent = 'Bitte eine Datei auswählen'; m.className='error'; return; }
+        const dataUrl = await fileToBase64(file);
+        const final = { name: file.name, data: dataUrl };
+        fetch(`${API_BASE}/client/${clientId}/final`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ final })
+        })
+          .then((resp) => resp.json())
+          .then((data) => {
+            if (data.success) { m.textContent='Finale Vorlage gespeichert'; m.className='success'; showClientDetails(artistId, clientId); }
+            else { m.textContent=data.error || 'Fehler beim Upload'; m.className='error'; }
           })
-            .then((resp) => resp.json())
-            .then((data) => {
-              if (data.success) {
-                document.getElementById('final-msg').textContent = 'Finale Vorlage gespeichert';
-                document.getElementById('final-msg').className = 'success';
-                showClientDetails(artistId, clientId);
-              } else {
-                document.getElementById('final-msg').textContent = data.error || 'Fehler beim Upload';
-                document.getElementById('final-msg').className = 'error';
-              }
-            })
-            .catch((err) => {
-              document.getElementById('final-msg').textContent = 'Fehler beim Upload';
-              document.getElementById('final-msg').className = 'error';
-              console.error(err);
-            });
-        });
+          .catch(() => { m.textContent='Fehler beim Upload'; m.className='error'; });
       });
     })
     .catch((err) => {

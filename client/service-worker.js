@@ -1,18 +1,24 @@
 /*
- * Service Worker für die Tattoo-PWA (Render Static Site).
- * - Cache-Version bumpen, nur gleiche Origin cachen
- * - API-/Fremd-Requests nicht anfassen
- * - SPA: Navigation fällt offline auf /index.html zurück
+ * Service Worker für die Tattoo-PWA (Static Site).
+ * - Cache-Version bumpen
+ * - Nur same-origin cachen (kein /api/ oder Cross-Origin)
+ * - SPA: Navigation -> /index.html Fallback
  */
 
-const VERSION = 'v7'; // neu
+const VERSION = 'v9';
 const CACHE_NAME = `tattoo-pwa-${VERSION}`;
+
 const OFFLINE_URLS = [
-  '/', '/index.html', '/studio.html', '/artist.html',
-  '/artist-register.html', '/artist-register.js', // <— NEU
-  '/style.css', '/theme.css', '/config.js',
-  '/script.js', '/studio.js', '/artist.js',
-  '/assets/marble-bg.png', '/manifest.json',
+  '/',                       // Render leitet auf /index.html
+  '/index.html',             '/script.js',
+  '/artist.html',            '/artist.js',
+  '/artist-login.html',      '/artist-login.js',
+  '/artist-register.html',   '/artist-register.js',
+  '/home.html',              '/home.js',
+  '/studio.html',            '/studio.js',
+  '/style.css',              '/theme.css', '/config.js',
+  '/assets/marble-bg.png',
+  '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png'
 ];
 
@@ -38,15 +44,15 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Nur GET-Anfragen cachen
+  // Nur GET cachen
   if (req.method !== 'GET') return;
 
-  // API und Cross-Origin nicht cachen → direkt ins Netz
+  // API und Cross-Origin NICHT cachen
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
-    return; // Browser macht normalen Fetch
+    return; // normaler Netz-Fetch
   }
 
-  // SPA-Navigation: bei Offline → /index.html aus dem Cache
+  // SPA-Navigation -> App-Shell
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req).catch(() => caches.match('/index.html'))
@@ -54,7 +60,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Statische Ressourcen: cache first, dann Netzwerk + nachcachen
+  // Statisches Asset: Cache First, sonst Netz + nachcachen
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;

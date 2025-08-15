@@ -1,16 +1,10 @@
-// Hauptskript für die Tattoo-PWA. Dieses Modul kümmert sich um die
-// Darstellung der verschiedenen Seiten (Login, Registrierung, Dashboard) und
-// den Austausch mit der REST-API.
+// Hauptskript für die Tattoo-PWA (Kunden-Seite / index.html)
 
 const API_BASE   = window.API_BASE || 'http://localhost:3001/api';
 const API_ORIGIN = API_BASE.replace(/\/api$/, '');
 const toAbs = (p) => (p && p.startsWith('/uploads/')) ? `${API_ORIGIN}${p}` : p;
 
-/**
- * Liest eine Datei und gibt sie als Data-URL (Base64) zurück.
- * @param {File} file
- * @returns {Promise<string>}
- */
+/** Datei -> Base64 (DataURL) */
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -20,13 +14,12 @@ function fileToBase64(file) {
   });
 }
 
+/** App-Bootstrap */
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
-  // Studio aus der URL holen; falls keins angegeben, neutraler Fallback
   const studioId = params.get('studio') || null;
   window.__studio = studioId;
 
-  // Theme laden + anwenden, DANN Seite rendern
   loadStudioConfig(studioId).finally(() => {
     const clientId = params.get('clientId');
     const registerMode = params.get('register');
@@ -38,10 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/**
- * Lädt (optional) das Theme eines Studios und setzt CSS-Variablen + BG.
- * @param {string|null} studioId
- */
+/** Studio-Theme laden & anwenden */
 function loadStudioConfig(studioId = null) {
   const endpoint = studioId
     ? `${API_BASE}/studio/${studioId}/config`
@@ -50,11 +40,10 @@ function loadStudioConfig(studioId = null) {
   return fetch(endpoint)
     .then((resp) => resp.ok ? resp.json() : {})
     .then((cfg) => {
-      // Fallbacks, falls Keys fehlen
       const primary   = cfg.primaryColor   || '#2c2c2c';
       const secondary = cfg.secondaryColor || '#fefefe';
       const accent    = cfg.accentColor    || '#c9a56c';
-      const fontBody  = cfg.fontBody       || "Inter, system-ui, sans-serif";
+      const fontBody  = cfg.fontBody       || 'Inter, system-ui, sans-serif';
       const bg        = cfg.bg             || 'assets/marble-bg.png';
 
       document.documentElement.style.setProperty('--primary-color', primary);
@@ -62,35 +51,28 @@ function loadStudioConfig(studioId = null) {
       document.documentElement.style.setProperty('--accent-color', accent);
       document.documentElement.style.setProperty('--font-family', fontBody);
 
-      // Glass-Card Variablen
       document.documentElement.style.setProperty('--card-bg', 'rgba(255,255,255,0.20)');
       document.documentElement.style.setProperty('--card-border', 'rgba(255,255,255,0.40)');
       document.documentElement.style.setProperty('--card-blur', '14px');
 
-      // Hintergrund anwenden
       document.body.style.backgroundImage = `url('${bg}')`;
       document.body.style.backgroundRepeat = 'no-repeat';
       document.body.style.backgroundSize = 'cover';
       document.body.style.backgroundAttachment = 'fixed';
 
-      // Optional: für CSS-Selektoren das Studio als Datensatz auf <body>
-      if (studioId) {
-        document.body.setAttribute('data-studio', studioId);
-      } else {
-        document.body.removeAttribute('data-studio');
-      }
+      if (studioId) document.body.setAttribute('data-studio', studioId);
+      else document.body.removeAttribute('data-studio');
     })
     .catch(() => {
-      // Bei Fehlern wenigstens eine neutrale Basis setzen
       document.documentElement.style.setProperty('--primary-color', '#2c2c2c');
       document.documentElement.style.setProperty('--secondary-color', '#fefefe');
       document.documentElement.style.setProperty('--accent-color', '#c9a56c');
-      document.documentElement.style.setProperty('--font-family', "Inter, system-ui, sans-serif");
+      document.documentElement.style.setProperty('--font-family', 'Inter, system-ui, sans-serif');
       document.body.style.backgroundImage = `url('assets/marble-bg.png')`;
     });
 }
 
-/** Artists für das aktuell gewählte Studio laden (für Dropdown). */
+/** Artists für das aktuelle Studio (Dropdown) */
 async function fetchArtistsForStudio() {
   const params = new URLSearchParams(window.location.search);
   const studioId = params.get('studio') || window.DEFAULT_STUDIO || null;
@@ -99,10 +81,7 @@ async function fetchArtistsForStudio() {
   return res.ok ? res.json() : [];
 }
 
-/**
- * Zeigt das Registrierungsformular für einen neuen Client (mit Artist-Dropdown).
- * @param {string} clientId
- */
+/** Registrierung (mit Artist-Dropdown) */
 function showRegisterForm(clientId) {
   const app = document.getElementById('app');
   app.innerHTML = '';
@@ -136,14 +115,15 @@ function showRegisterForm(clientId) {
     `;
     app.appendChild(form);
 
-    document.getElementById('reg-submit').addEventListener('click', () => {
-      const name = document.getElementById('reg-name').value.trim();
-      const password = document.getElementById('reg-password').value;
-      const artistId = document.getElementById('reg-artist').value;
+    const btn = form.querySelector('#reg-submit');
+    btn.addEventListener('click', () => {
+      const name = form.querySelector('#reg-name').value.trim();
+      const password = form.querySelector('#reg-password').value;
+      const artistId = form.querySelector('#reg-artist').value;
       const studioId = window.__studio || window.DEFAULT_STUDIO || null;
 
+      const m = form.querySelector('#reg-message');
       if (!password) {
-        const m = document.getElementById('reg-message');
         m.textContent = 'Bitte Passwort eingeben';
         m.className = 'error';
         return;
@@ -156,7 +136,6 @@ function showRegisterForm(clientId) {
       })
         .then((resp) => resp.json())
         .then((data) => {
-          const m = document.getElementById('reg-message');
           if (data.success) {
             m.textContent = 'Registrierung erfolgreich! Du kannst dich nun einloggen.';
             m.className = 'success';
@@ -167,21 +146,15 @@ function showRegisterForm(clientId) {
             m.className = 'error';
           }
         })
-        .catch((err) => {
-          const m = document.getElementById('reg-message');
+        .catch(() => {
           m.textContent = 'Fehler bei der Registrierung';
           m.className = 'error';
-          console.error(err);
         });
     });
   });
 }
 
-/**
- * Zeigt eine Eingabeseite an, auf der der Nutzer zunächst seine Kunden-ID
- * eingibt. Nach Bestätigung wird das eigentliche Registrierungsformular
- * angezeigt.
- */
+/** Erst-Dialog vor Registrierung (Kunden-ID abfragen) */
 function showInitialRegister() {
   const app = document.getElementById('app');
   app.innerHTML = '';
@@ -198,25 +171,21 @@ function showInitialRegister() {
     <p id="init-msg"></p>
   `;
   app.appendChild(form);
-  document.getElementById('init-reg-btn').addEventListener('click', () => {
-    const cid = document.getElementById('init-client-id').value.trim();
+
+  form.querySelector('#init-reg-btn').addEventListener('click', () => {
+    const cid = form.querySelector('#init-client-id').value.trim();
+    const msg = form.querySelector('#init-msg');
     if (!cid) {
-      const msg = document.getElementById('init-msg');
       msg.textContent = 'Bitte die vom Studio bereitgestellte Kunden-ID eingeben.';
       msg.className = 'error';
       return;
     }
     showRegisterForm(cid);
   });
-  document.getElementById('init-back-btn').addEventListener('click', () => {
-    showLoginForm();
-  });
+  form.querySelector('#init-back-btn').addEventListener('click', showLoginForm);
 }
 
-/**
- * Zeigt das Login-Formular. Je nach ausgewählter Rolle (client/artist) wird
- * entweder das Kundendashboard oder die Artist-Seite geladen.
- */
+/** Login (Kunde/Artist) */
 function showLoginForm() {
   const app = document.getElementById('app');
   app.innerHTML = '';
@@ -245,14 +214,14 @@ function showLoginForm() {
   `;
   app.appendChild(form);
 
-  document.getElementById('login-submit').addEventListener('click', () => {
-    const userId = document.getElementById('login-user-id').value.trim();
-    const password = document.getElementById('login-password').value;
-    const role = document.getElementById('login-role').value;
+  form.querySelector('#login-submit').addEventListener('click', () => {
+    const userId = form.querySelector('#login-user-id').value.trim();
+    const password = form.querySelector('#login-password').value;
+    const role = form.querySelector('#login-role').value;
     const studioId = window.__studio || window.DEFAULT_STUDIO || null;
 
+    const m = form.querySelector('#login-message');
     if (!userId || !password) {
-      const m = document.getElementById('login-message');
       m.textContent = 'Bitte alle Felder ausfüllen';
       m.className = 'error';
       return;
@@ -264,12 +233,10 @@ function showLoginForm() {
     })
       .then((resp) => resp.json())
       .then((data) => {
-        const m = document.getElementById('login-message');
         if (data.success) {
           if (role === 'client') {
             loadClientDashboard(data.clientId || userId);
           } else {
-            // Artist-Login: lade artist.html mit Parametern (inkl. Studio)
             const qsStudio = studioId ? `&studio=${encodeURIComponent(studioId)}` : '';
             window.location.href = `/artist.html?artistId=${encodeURIComponent(userId)}${qsStudio}`;
           }
@@ -278,74 +245,57 @@ function showLoginForm() {
           m.className = 'error';
         }
       })
-      .catch((err) => {
-        const m = document.getElementById('login-message');
+      .catch(() => {
         m.textContent = 'Fehler beim Login';
         m.className = 'error';
-        console.error(err);
       });
   });
 
-  // Navigiert zur Registrierung, indem zunächst die Client-ID abgefragt wird
-  document.getElementById('show-register').addEventListener('click', () => {
-    showInitialRegister();
-  });
+  form.querySelector('#show-register').addEventListener('click', showInitialRegister);
 }
 
-/**
- * Lädt das Dashboard des Kunden und baut die Oberfläche auf.
- * @param {string} clientId
- */
+/** Kundendaten laden + Dashboard rendern */
 function loadClientDashboard(clientId) {
   const app = document.getElementById('app');
   app.innerHTML = '';
-  // Lade Kundendaten vom Server
   fetch(`${API_BASE}/client/${clientId}`)
     .then((resp) => resp.json())
-    .then((client) => {
-      buildClientUI(client);
-    })
-    .catch((err) => {
-      console.error('Fehler beim Laden der Kundendaten', err);
-    });
+    .then((client) => buildClientUI(client))
+    .catch((err) => console.error('Fehler beim Laden der Kundendaten', err));
 }
 
-/**
- * Baut die UI für den Kunden anhand der geladenen Daten auf.
- * @param {object} client
- */
+/** Kunden-Dashboard (Tabs: Termine, Ideen, Vorlagen, Wanna-Do, Pflege) */
 function buildClientUI(client) {
   const app = document.getElementById('app');
-  // Header
+
   const header = document.createElement('header');
   header.innerHTML = `<h1>Willkommen, ${client.name}</h1>`;
   app.appendChild(header);
 
-  // Tabs
   const tabs = document.createElement('div');
   tabs.className = 'tabs';
-  const tabNames = [
+  const tabDefs = [
     { id: 'appointments', title: 'Termine' },
-    { id: 'ideas', title: 'Ideen' },
-    { id: 'templates', title: 'Vorlagen' },
-    { id: 'aftercare', title: 'Tattoo-Pflege' }
+    { id: 'ideas',        title: 'Ideen' },
+    { id: 'templates',    title: 'Vorlagen' },
+    { id: 'wannado',      title: 'Wanna-Do' },
+    { id: 'aftercare',    title: 'Tattoo-Pflege' }
   ];
-  tabNames.forEach((t, idx) => {
-    const tab = document.createElement('div');
-    tab.className = 'tab' + (idx === 0 ? ' active' : '');
-    tab.textContent = t.title;
-    tab.dataset.target = t.id;
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((el) => el.classList.remove('active'));
-      tab.classList.add('active');
-      document.querySelectorAll('.section').forEach((sec) => (sec.classList.remove('active')));
-      document.getElementById(t.id).classList.add('active');
+  tabDefs.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (i === 0 ? ' active' : '');
+    el.dataset.target = t.id;
+    el.textContent = t.title;
+    el.addEventListener('click', () => {
+      tabs.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      container.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      container.querySelector(`#${t.id}`).classList.add('active');
     });
-    tabs.appendChild(tab);
+    tabs.appendChild(el);
   });
   app.appendChild(tabs);
 
-  // Sections container
   const container = document.createElement('main');
 
   // Termine
@@ -353,15 +303,15 @@ function buildClientUI(client) {
   apptSec.id = 'appointments';
   apptSec.className = 'section active';
   apptSec.innerHTML = '<h2>Termine</h2>';
-  if (client.appointments && client.appointments.length > 0) {
+  if (client.appointments?.length) {
     client.appointments
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .forEach((appt) => {
         const card = document.createElement('div');
         card.className = 'card';
-        const date = new Date(appt.date);
+        const d = new Date(appt.date);
         card.innerHTML = `
-          <strong>${date.toLocaleDateString()} – ${appt.type}</strong><br />
+          <strong>${d.toLocaleDateString()} – ${appt.type || ''}</strong><br/>
           <span>${appt.description || ''}</span>
         `;
         apptSec.appendChild(card);
@@ -376,7 +326,7 @@ function buildClientUI(client) {
   ideasSec.id = 'ideas';
   ideasSec.className = 'section';
   ideasSec.innerHTML = '<h2>Ideen hochladen</h2>';
-  // Upload-Formular
+
   const ideaForm = document.createElement('div');
   ideaForm.innerHTML = `
     <input type="file" id="idea-files" multiple accept="image/*" />
@@ -384,62 +334,52 @@ function buildClientUI(client) {
     <p id="idea-msg"></p>
   `;
   ideasSec.appendChild(ideaForm);
-  // Liste der hochgeladenen Ideen
+
   const ideaList = document.createElement('div');
   ideaList.className = 'image-list';
-  if (client.ideas && client.ideas.length > 0) {
-    client.ideas.forEach((idea) => {
-      const item = document.createElement('div');
-      item.className = 'image-item';
-      const img = document.createElement('img');
-      img.src = toAbs(idea.url || idea.path);
-      img.alt = idea.filename || 'Idee';
-      item.appendChild(img);
-      ideaList.appendChild(item);
-    });
-  }
+  (client.ideas || []).forEach((idea) => {
+    const item = document.createElement('div');
+    item.className = 'image-item';
+    const img = document.createElement('img');
+    img.src = toAbs(idea.url || idea.path);
+    img.alt = idea.filename || 'Idee';
+    item.appendChild(img);
+    ideaList.appendChild(item);
+  });
   ideasSec.appendChild(ideaList);
   container.appendChild(ideasSec);
 
   // Upload-Handler (Ideen)
-  document.addEventListener('click', (event) => {
-    if (event.target && event.target.id === 'idea-upload-btn') {
-      const fileInput = document.getElementById('idea-files');
-      const files = fileInput.files;
-      if (!files || files.length === 0) {
-        const m = document.getElementById('idea-msg');
-        m.textContent = 'Bitte Bilder auswählen';
-        m.className = 'error';
-        return;
-      }
-      // Dateien als Base64 lesen
-      Promise.all(Array.from(files).map((file) => fileToBase64(file))).then((base64Files) => {
-        const images = base64Files.map((data, idx) => ({ name: files[idx].name, data }));
-        fetch(`${API_BASE}/client/${client.id}/ideas`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ images })
-        })
-          .then((resp) => resp.json())
-          .then((data) => {
-            const m = document.getElementById('idea-msg');
-            if (data.success) {
-              m.textContent = 'Bilder erfolgreich hochgeladen';
-              m.className = 'success';
-              loadClientDashboard(client.id);
-            } else {
-              m.textContent = data.error || 'Fehler beim Upload';
-              m.className = 'error';
-            }
-          })
-          .catch((err) => {
-            const m = document.getElementById('idea-msg');
-            m.textContent = 'Fehler beim Upload';
-            m.className = 'error';
-            console.error(err);
-          });
-      });
+  ideasSec.querySelector('#idea-upload-btn').addEventListener('click', async () => {
+    const files = ideasSec.querySelector('#idea-files').files;
+    const msg = ideasSec.querySelector('#idea-msg');
+    if (!files || !files.length) {
+      msg.textContent = 'Bitte Bilder auswählen';
+      msg.className = 'error';
+      return;
     }
+    const base64 = await Promise.all(Array.from(files).map(fileToBase64));
+    const images = base64.map((data, i) => ({ name: files[i].name, data }));
+    fetch(`${API_BASE}/client/${client.id}/ideas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images })
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) {
+          msg.textContent = 'Bilder erfolgreich hochgeladen';
+          msg.className = 'success';
+          loadClientDashboard(client.id);
+        } else {
+          msg.textContent = d.error || 'Fehler beim Upload';
+          msg.className = 'error';
+        }
+      })
+      .catch(() => {
+        msg.textContent = 'Fehler beim Upload';
+        msg.className = 'error';
+      });
   });
 
   // Vorlagen
@@ -447,10 +387,10 @@ function buildClientUI(client) {
   tmplSec.id = 'templates';
   tmplSec.className = 'section';
   tmplSec.innerHTML = '<h2>Vorlagen</h2>';
-  // Liste der Vorlagen
+
   const tmplList = document.createElement('div');
   tmplList.className = 'image-list';
-  if (client.templates && client.templates.length > 0) {
+  if (client.templates?.length) {
     client.templates.forEach((tmpl) => {
       const item = document.createElement('div');
       item.className = 'image-item';
@@ -458,25 +398,22 @@ function buildClientUI(client) {
       img.src = toAbs(tmpl.url || tmpl.path);
       img.alt = tmpl.filename || 'Vorlage';
       item.appendChild(img);
-      // Bewertungsbuttons
+
       const ratingDiv = document.createElement('div');
       ratingDiv.className = 'rating-buttons';
       const likeBtn = document.createElement('button');
       likeBtn.textContent = 'Gefällt mir';
-      likeBtn.addEventListener('click', () => {
-        rateTemplate(client.id, tmpl.id, 'like');
-      });
+      likeBtn.addEventListener('click', () => rateTemplate(client.id, tmpl.id, 'like'));
       const dislikeBtn = document.createElement('button');
       dislikeBtn.textContent = 'Gefällt mir nicht';
-      dislikeBtn.addEventListener('click', () => {
-        rateTemplate(client.id, tmpl.id, 'dislike');
-      });
+      dislikeBtn.addEventListener('click', () => rateTemplate(client.id, tmpl.id, 'dislike'));
       ratingDiv.appendChild(likeBtn);
       ratingDiv.appendChild(dislikeBtn);
-      // Anzeige des Ratings
+
       const ratingInfo = document.createElement('span');
       ratingInfo.style.display = 'block';
       ratingInfo.textContent = tmpl.rating ? `Bewertung: ${tmpl.rating}` : '';
+
       item.appendChild(ratingInfo);
       item.appendChild(ratingDiv);
       tmplList.appendChild(item);
@@ -486,7 +423,7 @@ function buildClientUI(client) {
   }
   tmplSec.appendChild(tmplList);
 
-  // finale Vorlage anzeigen
+  // finale Vorlage
   if (client.finalTemplate) {
     const finalDiv = document.createElement('div');
     finalDiv.className = 'card';
@@ -498,12 +435,39 @@ function buildClientUI(client) {
   }
   container.appendChild(tmplSec);
 
+  // Wanna-Do (vom zugewiesenen Artist)
+  const wdSec = document.createElement('div');
+  wdSec.id = 'wannado';
+  wdSec.className = 'section';
+  wdSec.innerHTML = '<h2>Wanna-Do vom Artist</h2>';
+  fetch(`${API_BASE}/client/${client.id}/artist/wannado`)
+    .then(r => r.json())
+    .then(items => {
+      if (!items || !items.length) {
+        wdSec.innerHTML += '<p>Noch keine Wanna-Do Motive.</p>';
+        return;
+      }
+      const list = document.createElement('div');
+      list.className = 'image-list';
+      items.forEach(it => {
+        const d = document.createElement('div');
+        d.className = 'image-item';
+        const img = document.createElement('img');
+        img.src = toAbs(it.path || it.url);
+        img.alt = it.filename || 'Wanna-Do';
+        d.appendChild(img);
+        list.appendChild(d);
+      });
+      wdSec.appendChild(list);
+    })
+    .catch(() => { wdSec.innerHTML += '<p>Wanna-Do momentan nicht verfügbar.</p>'; });
+  container.appendChild(wdSec);
+
   // Tattoo-Pflege
   const careSec = document.createElement('div');
   careSec.id = 'aftercare';
   careSec.className = 'section';
   careSec.innerHTML = '<h2>Tattoo-Pflege</h2>';
-  // Aftercare-Tipps laden
   fetch(`${API_BASE}/aftercare`)
     .then((resp) => resp.json())
     .then((data) => {
@@ -514,9 +478,7 @@ function buildClientUI(client) {
         careSec.appendChild(card);
       });
     })
-    .catch((err) => console.error('Fehler beim Laden der Aftercare-Tipps', err));
-
-  // Formular zum Hochladen von Heilungsbildern
+    .catch(() => {});
   const healForm = document.createElement('div');
   healForm.className = 'card';
   healForm.innerHTML = `
@@ -528,8 +490,7 @@ function buildClientUI(client) {
   `;
   careSec.appendChild(healForm);
 
-  // Liste der Heilungsanfragen anzeigen
-  if (client.healing && client.healing.length > 0) {
+  if (client.healing?.length) {
     client.healing
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .forEach((entry) => {
@@ -537,10 +498,10 @@ function buildClientUI(client) {
         card.className = 'card';
         const date = new Date(entry.createdAt);
         card.innerHTML = `<strong>Anfrage vom ${date.toLocaleDateString()}</strong><p>${entry.comment || ''}</p>`;
-        // Bildergalerie
+
         const imgList = document.createElement('div');
         imgList.className = 'image-list';
-        entry.images.forEach((img) => {
+        (entry.images || []).forEach((img) => {
           const imgItem = document.createElement('div');
           imgItem.className = 'image-item';
           const im = document.createElement('img');
@@ -550,10 +511,10 @@ function buildClientUI(client) {
           imgList.appendChild(imgItem);
         });
         card.appendChild(imgList);
-        // Antworten anzeigen
-        if (entry.responses && entry.responses.length > 0) {
+
+        if (entry.responses?.length) {
           const respDiv = document.createElement('div');
-          respDiv.style.marginTop = '0.5rem';
+          respDiv.style.marginTop = '.5rem';
           entry.responses.forEach((resp) => {
             const rdate = new Date(resp.createdAt);
             const p = document.createElement('p');
@@ -566,55 +527,45 @@ function buildClientUI(client) {
       });
   }
   container.appendChild(careSec);
+
   app.appendChild(container);
 
-  // Eventlistener für Heilungsupload
-  document.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'heal-upload-btn') {
-      const files = document.getElementById('heal-files').files;
-      const comment = document.getElementById('heal-comment').value;
-      if (!files || files.length === 0) {
-        const m = document.getElementById('heal-msg');
-        m.textContent = 'Bitte Bilder auswählen';
-        m.className = 'error';
-        return;
-      }
-      Promise.all(Array.from(files).map((file) => fileToBase64(file))).then((base64Files) => {
-        const images = base64Files.map((data, idx) => ({ name: files[idx].name, data }));
-        fetch(`${API_BASE}/client/${client.id}/healing`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ images, comment })
-        })
-          .then((resp) => resp.json())
-          .then((data) => {
-            const m = document.getElementById('heal-msg');
-            if (data.success) {
-              m.textContent = 'Bilder erfolgreich übermittelt';
-              m.className = 'success';
-              loadClientDashboard(client.id);
-            } else {
-              m.textContent = data.error || 'Fehler beim Upload';
-              m.className = 'error';
-            }
-          })
-          .catch((err) => {
-            const m = document.getElementById('heal-msg');
-            m.textContent = 'Fehler beim Upload';
-            m.className = 'error';
-            console.error(err);
-          });
-      });
+  // Heilungsbilder senden
+  healForm.querySelector('#heal-upload-btn').addEventListener('click', async () => {
+    const files = healForm.querySelector('#heal-files').files;
+    const comment = healForm.querySelector('#heal-comment').value;
+    const msg = healForm.querySelector('#heal-msg');
+    if (!files || !files.length) {
+      msg.textContent = 'Bitte Bilder auswählen';
+      msg.className = 'error';
+      return;
     }
+    const base64 = await Promise.all(Array.from(files).map(fileToBase64));
+    const images = base64.map((data, i) => ({ name: files[i].name, data }));
+    fetch(`${API_BASE}/client/${client.id}/healing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images, comment })
+    })
+      .then((resp) => resp.json())
+      .then((data) => {
+        if (data.success) {
+          msg.textContent = 'Bilder erfolgreich übermittelt';
+          msg.className = 'success';
+          loadClientDashboard(client.id);
+        } else {
+          msg.textContent = data.error || 'Fehler beim Upload';
+          msg.className = 'error';
+        }
+      })
+      .catch(() => {
+        msg.textContent = 'Fehler beim Upload';
+        msg.className = 'error';
+      });
   });
 }
 
-/**
- * Bewertet eine Vorlage und sendet das Ergebnis an den Server.
- * @param {string} clientId
- * @param {string} templateId
- * @param {string} rating
- */
+/** Vorlage bewerten */
 function rateTemplate(clientId, templateId, rating) {
   fetch(`${API_BASE}/client/${clientId}/templates/${templateId}/rating`, {
     method: 'POST',
@@ -623,9 +574,7 @@ function rateTemplate(clientId, templateId, rating) {
   })
     .then((resp) => resp.json())
     .then((data) => {
-      if (data.success) {
-        loadClientDashboard(clientId);
-      }
+      if (data.success) loadClientDashboard(clientId);
     })
     .catch((err) => console.error('Fehler beim Bewerten der Vorlage', err));
 }
