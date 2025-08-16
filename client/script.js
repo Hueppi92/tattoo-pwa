@@ -8,6 +8,9 @@ const qs = (sel, root = document) => root.querySelector(sel);
 const qsa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
 const exists = (sel, root = document) => !!qs(sel, root);
+// SPA ist nur aktiv, wenn es mindestens EIN Element mit [data-route] gibt
+const SPA_ENABLED = !!document.querySelector('[data-route]');
+
 
 function toast(msg, type = 'info') {
   // Simple toast (inline). Ersetzt ggf. durch dein UI-Framework.
@@ -131,22 +134,29 @@ export async function sendMessage(data) {
 const routes = () => qsa('[data-route]').map(n => n.getAttribute('data-route'));
 
 function showRoute(name) {
-  qsa('[data-route]').forEach(el => {
+  // sichtbarkeit
+  document.querySelectorAll('[data-route]').forEach(el => {
     el.style.display = el.getAttribute('data-route') === name ? '' : 'none';
   });
-  // optional: aktuellen Link markieren
-  qsa('[data-link]').forEach(a => {
-    const to = a.getAttribute('data-link');
-    a.classList.toggle('active', to === name);
+  document.querySelectorAll('[data-link]').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('data-link') === name);
   });
-  window.history.replaceState({}, '', `#/${encodeURIComponent(name)}`);
-  document.dispatchEvent(new CustomEvent('route:changed', { detail: { route: name } }));
+
+  if (SPA_ENABLED) {
+    // Nur im SPA-Modus Hash aktualisieren
+    const target = `#/${encodeURIComponent(name)}`;
+    if (location.hash !== target) {
+      history.replaceState({}, '', target);
+    }
+    document.dispatchEvent(new CustomEvent('route:changed', { detail: { route: name } }));
+  }
 }
 
 function getInitialRoute() {
-  const hash = decodeURIComponent((location.hash || '').replace(/^#\/?/, ''));
-  const list = routes();
-  if (hash && list.includes(hash)) return hash;
+  if (!SPA_ENABLED) return 'home'; // wird eh nicht benutzt
+  const raw = (location.hash || '').replace(/^#\/?/, '');
+  const list = Array.from(document.querySelectorAll('[data-route]')).map(n => n.getAttribute('data-route'));
+  if (raw && list.includes(decodeURIComponent(raw))) return decodeURIComponent(raw);
   return list[0] || 'home';
 }
 
@@ -514,23 +524,24 @@ function initDevMenu() {
    Bootstrap
 =========================== */
 function bootstrap() {
-  // Initial route anzeigen
-  showRoute(getInitialRoute());
+  if (SPA_ENABLED) {
+    // Nur für Single-Page-Bereiche
+    showRoute(getInitialRoute());
+    window.addEventListener('hashchange', () => {
+      showRoute(getInitialRoute());
+    });
+    initBindings();
+    initDevMenu();
+  } else {
+    // Kein SPA → niemals Hash anhängen
+    // Falls schon ein Hash dran ist (vom alten Code), entfernen:
+    if (location.hash) history.replaceState({}, '', location.pathname + location.search);
+    // Du kannst hier trotzdem initDevMenu() auf Mehrseiten aktivieren, wenn gewünscht:
+    initDevMenu();
+  }
 
-  // Router reagiert auf Hash-Änderungen (optional)
-  on(window, 'hashchange', () => {
-    const route = getInitialRoute();
-    showRoute(route);
-  });
-
-  // Bindings + Dev-Menü
-  initBindings();
-  initDevMenu();
-
-  // Debug
-  // zeigt die effektive API-Basis in der Konsole (hilft bei Mixed-Content/CORS)
-  // endpoint('') endet mit /api (oder deiner externen Basis ohne Slash am Ende)
   console.log('[TattooApp] API Base:', endpoint(''));
 }
 
-on(window, 'DOMContentLoaded', bootstrap);
+window.addEventListener('DOMContentLoaded', bootstrap);
+
