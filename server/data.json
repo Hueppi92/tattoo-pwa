@@ -1,77 +1,24 @@
 {
   "clients": [
     {
-      "id": "demo-client",
-      "name": "Andi",
-      "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-      "studioId": "exclusive-ink",
-      "artistId": "demo-artist",
-      "appointments": [
-        {
-          "id": "appt1",
-          "date": "2025-09-01T10:00:00",
-          "type": "consultation",
-          "description": "Erstberatung"
-        },
-        {
-          "id": "appt2",
-          "date": "2025-09-10T10:00:00",
-          "type": "tattoo",
-          "description": "Tattoo-Termin"
-        }
-      ],
-      "ideas": [],
-      "templates": [],
-      "finalTemplate": null,
-      "healing": [],
-      "messages": []
-    },
-    {
-      "id": "testclient",
-      "name": "Kunde",
-      "password": "13d249f2cb4127b40cfa757866850278793f814ded3c587fe5889e889a7a9f6c",
-      "studioId": "exclusive-ink",
-      "artistId": "",
-      "appointments": [],
-      "ideas": [],
-      "templates": [],
-      "finalTemplate": null,
-      "healing": [],
-      "messages": []
-    },
-    {
-      "id": "321654",
-      "name": "Andi",
-      "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-      "studioId": "monkeybrothers",
-      "artistId": "",
-      "appointments": [],
-      "ideas": [],
-      "templates": [],
-      "finalTemplate": null,
-      "healing": [],
-      "messages": []
-    },
-    {
-      "id": "123",
-      "name": "Andi",
-      "password": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-      "studioId": "secret-ink",
-      "artistId": "greta",
-      "appointments": [],
-      "ideas": [],
-      "templates": [],
-      "finalTemplate": null,
-      "healing": [],
-      "messages": []
-    }
-    ,
-    {
-      "id": "dev",
-      "name": "Dev Client",
+      "id": "clientA",
+      "name": "Kunde A",
       "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
       "studioId": "exclusive-ink",
-      "artistId": "",
+      "artistId": "artistA",
+      "appointments": [],
+      "ideas": [],
+      "templates": [],
+      "finalTemplate": null,
+      "healing": [],
+      "messages": []
+    },
+    {
+      "id": "clientB",
+      "name": "Kunde B",
+      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
+      "studioId": "exclusive-ink",
+      "artistId": "artistB",
       "appointments": [],
       "ideas": [],
       "templates": [],
@@ -82,27 +29,14 @@
   ],
   "artists": [
     {
-      "id": "demo-artist",
-      "name": "Demo Artist",
-      "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
+      "id": "artistA",
+      "name": "Artist A",
+      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
       "studioId": "exclusive-ink"
     },
     {
-      "id": "greta",
-      "name": "Greta",
-      "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
-      "studioId": "secret-ink"
-    },
-    {
-      "id": "jax",
-      "name": "Jax",
-      "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
-      "studioId": "monkeybrothers"
-    }
-    ,
-    {
-      "id": "devartist",
-      "name": "Dev Artist",
+      "id": "artistB",
+      "name": "Artist B",
       "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
       "studioId": "exclusive-ink"
     }
