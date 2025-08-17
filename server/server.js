@@ -196,6 +196,79 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // POST /api/artist/:id/wannado  { images: [{name,data}] }
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'wannado' && method === 'POST') {
+  try {
+    const artistId = parts[2];
+    const { images } = await readBody(req);
+    const results = [];
+    ensureArray(images).forEach((img) => {
+      const saved = saveDataUrlToFile(img.data, UPLOAD_DIRS.wannado);
+      if (saved) results.push({ id: saved.id, filename: img.name || saved.filename, path: saved.path });
+    });
+    dbApi.addWannado(artistId, results);
+    return sendJSON(res, 200, { success: true, uploaded: results.length });
+  } catch {
+    return sendJSON(res, 500, { error: 'Upload fehlgeschlagen' });
+  }
+}
+
+// GET /api/artist/:id/healing  -> Healing-Bilder aller eigenen Kunden
+if (parts[1] === 'artist' && parts[2] && parts[3] === 'healing' && method === 'GET') {
+  return sendJSON(res, 200, dbApi.listHealingForArtist(parts[2]));
+}
+
+
+  // POST /api/studio/:id/assign   { clientId, artistId }
+if (parts[1] === 'studio' && parts[2] && parts[3] === 'assign' && method === 'POST') {
+  const studioId = parts[2];
+  const { clientId, artistId } = await readBody(req);
+  if (!clientId || !artistId) return sendJSON(res, 400, { error: 'clientId und artistId erforderlich' });
+
+  // (Optional: prüfen, ob beide zum Studio gehören)
+  const c = dbApi.getClientById(clientId);
+  const a = dbApi.getArtistById(artistId);
+  if (!c || !a || (c.studio_id && c.studio_id !== studioId) || (a.studio_id && a.studio_id !== studioId)) {
+    return sendJSON(res, 400, { error: 'Studio-Zugehörigkeit inkonsistent' });
+  }
+  dbApi.assignClientToArtist(clientId, artistId);
+  return sendJSON(res, 200, { success: true });
+}
+
+// GET /api/studio/:id/overview
+if (parts[1] === 'studio' && parts[2] && parts[3] === 'overview' && method === 'GET') {
+  return sendJSON(res, 200, dbApi.studioOverview(parts[2]));
+}
+
+// GET /api/client/:id/wannado   -> nur Wanna-Do des zugewiesenen Artists
+if (parts[1] === 'client' && parts[2] && parts[3] === 'wannado' && method === 'GET') {
+  return sendJSON(res, 200, dbApi.listWannadoForClient(parts[2]));
+}
+
+// POST /api/client/:id/healing  { images: [{name,data,comment?}] }
+if (parts[1] === 'client' && parts[2] && parts[3] === 'healing' && method === 'POST') {
+  try {
+    const clientId = parts[2];
+    const { images } = await readBody(req);
+    const rows = [];
+    ensureArray(images).forEach((img) => {
+      const saved = saveDataUrlToFile(img.data, UPLOAD_DIRS.healing);
+      if (saved) rows.push({
+        id: saved.id,
+        filename: img.name || saved.filename,
+        path: saved.path,
+        comment: img.comment || null
+      });
+    });
+    dbApi.addHealingForClient(clientId, rows);
+    return sendJSON(res, 200, { success: true, uploaded: rows.length });
+  } catch {
+    return sendJSON(res, 500, { error: 'Healing-Upload fehlgeschlagen' });
+  }
+}
+
+
+
   // Analog kannst du bei Bedarf templates/final/healing ergänzen…
 
 
