@@ -8,6 +8,6 @@
     "migrate": "node migrate-json-to-sqlite.js"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.0"
+    "better-sqlite3": "^9.6.0"
   }
 }
