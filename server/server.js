@@ -9,6 +9,8 @@ import url from 'url';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import dbApi, { sha256 } from './db.js';
+import crypto from "crypto";
+
 
 // __dirname sauber aus import.meta.url erzeugen
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -69,6 +71,12 @@ function saveDataUrlToFile(dataUrl, targetDir) {
   return { id, filename: fileName, path: `/uploads/${path.basename(targetDir)}/${fileName}` };
 }
 function ensureArray(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
+
+
+function hashPassword(password) {
+  return crypto.createHash("sha256").update(password).digest("hex");
+}
+
 
 function serveUploads(req, res, pathname) {
   const rel = pathname.replace(/^\/uploads\//, '');

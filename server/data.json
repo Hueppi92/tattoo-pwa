@@ -3,8 +3,8 @@
     {
       "id": "clientA",
       "name": "Kunde A",
-      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
-      "studioId": "exclusive-ink",
+      "password": "devpass",
+      "studioId": "studioA",
       "artistId": "artistA",
       "appointments": [],
       "ideas": [],
@@ -16,8 +16,8 @@
     {
       "id": "clientB",
       "name": "Kunde B",
-      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
-      "studioId": "exclusive-ink",
+      "password": "devpass",
+      "studioId": "studioB",
       "artistId": "artistB",
       "appointments": [],
       "ideas": [],
@@ -31,25 +31,19 @@
     {
       "id": "artistA",
       "name": "Artist A",
-      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
-      "studioId": "exclusive-ink"
+      "password": "devpass",
+      "studioId": "studioA"
     },
     {
       "id": "artistB",
       "name": "Artist B",
-      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
-      "studioId": "exclusive-ink"
+      "password": "devpass",
+      "studioId": "studioB"
     }
   ],
-  "studioConfig": {
-    "primaryColor": "#202020",
-    "secondaryColor": "#f5f5f5",
-    "accentColor": "#b53131",
-    "logo": ""
-  },
   "studios": [
     {
-      "id": "exclusive-ink",
+      "id": "studioA",
       "name": "Beispiel-Studio A",
       "theme": {
         "primaryColor": "#1a1a1d",
@@ -60,12 +54,12 @@
         "bg": "/assets/bg-a.png"
       },
       "manager": {
-        "user": "manager@exclusive",
+        "user": "managerA",
         "password": "pass123"
       }
     },
     {
-      "id": "secret-ink",
+      "id": "studioB",
       "name": "Beispiel-Studio B",
       "theme": {
         "primaryColor": "#f5f5f5",
@@ -76,24 +70,7 @@
         "bg": "/assets/bg-b.png"
       },
       "manager": {
-        "user": "manager@secret",
-        "password": "pass123"
-      }
-    },
-    {
-      "id": "monkeybrothers",
-      "name": "Beispiel-Studio C",
-      "theme": {
-        "primaryColor": "#1f262a",
-        "secondaryColor": "#faf7f1",
-        "accentColor": "#ff7a00",
-        "accentColor2": "#00c2ff",
-        "fontHead": "Bebas Neue, system-ui, sans-serif",
-        "fontBody": "Roboto, system-ui, sans-serif",
-        "bg": "/assets/bg-c.png"
-      },
-      "manager": {
-        "user": "manager@monkey",
+        "user": "managerB",
         "password": "pass123"
       }
     }
