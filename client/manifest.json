@@ -1,7 +1,7 @@
 {
   "name": "Tattoo Studio PWA",
   "short_name": "Tattoo PWA",
-  "start_url": "/index.html",
+  "start_url": "/home.html",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#202020",
