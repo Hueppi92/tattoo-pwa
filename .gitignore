@@ -1,0 +1,29 @@
+# ---- Node Dependencies ----
+node_modules/
+server/node_modules/
+client/node_modules/
+
+# ---- Database ----
+server/db.sqlite
+
+# ---- Uploads ----
+server/uploads/
+
+# ---- Logs ----
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Build output ----
+client/dist/
+client/build/
+
+# ---- Environment files ----
+.env
+server/.env
+client/.env
+
+# ---- OS / Editor files ----
+.DS_Store
+Thumbs.db
+.vscode/
