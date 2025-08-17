@@ -25,6 +25,7 @@ async function fetchStudioConfig(id) {
 async function boot() {
   const params = new URLSearchParams(window.location.search);
   const preselectStudio = params.get('studio') || window.DEFAULT_STUDIO || null;
+  const isDev = params.has('dev');
 
   const app = document.getElementById('artist-reg-app');
   app.innerHTML = `
@@ -71,7 +72,13 @@ async function boot() {
 
   // Back-Link Studio beibehalten
   const back = document.getElementById('back-link');
-  back.href = `/index.html${sel.value ? `?studio=${encodeURIComponent(sel.value)}` : ''}`;
+  {
+    const q = new URLSearchParams();
+    if (sel.value) q.set('studio', sel.value);
+    if (isDev) q.set('dev', '1');
+    const qs = q.toString();
+    back.href = `/index.html${qs ? `?${qs}` : ''}`;
+  }
 
   // Registrierung
   document.getElementById('reg-btn').addEventListener('click', async () => {
@@ -95,7 +102,11 @@ async function boot() {
       msg.textContent = 'Registrierung erfolgreich. Weiterleitung…';
       msg.className = 'success';
       setTimeout(() => {
-        window.location.href = `/artist.html?artistId=${encodeURIComponent(artistId)}&studio=${encodeURIComponent(studioId)}`;
+        const q = new URLSearchParams();
+        q.set('artistId', artistId);
+        q.set('studio', studioId);
+        if (isDev) q.set('dev', '1');
+        window.location.href = `/artist.html?${q.toString()}`;
       }, 800);
     } else {
       msg.textContent = (res && res.error) || 'Registrierung fehlgeschlagen.';

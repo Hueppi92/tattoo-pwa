@@ -65,6 +65,20 @@
       "healing": [],
       "messages": []
     }
+    ,
+    {
+      "id": "dev",
+      "name": "Dev Client",
+      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
+      "studioId": "exclusive-ink",
+      "artistId": "",
+      "appointments": [],
+      "ideas": [],
+      "templates": [],
+      "finalTemplate": null,
+      "healing": [],
+      "messages": []
+    }
   ],
   "artists": [
     {
@@ -84,6 +98,13 @@
       "name": "Jax",
       "password": "54211f5625c4a75d0e6c571fd81461df3d2af5322124a6e40012444909f5209d",
       "studioId": "monkeybrothers"
+    }
+    ,
+    {
+      "id": "devartist",
+      "name": "Dev Artist",
+      "password": "fee39c23856e3d9dd500861a30903548b8878994291b2fef7fff2f53b3073c0c",
+      "studioId": "exclusive-ink"
     }
   ],
   "studioConfig": {

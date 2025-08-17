@@ -22,6 +22,7 @@ async function loadStudioTheme() {
 function render() {
   const p = new URLSearchParams(location.search);
   const studio = p.get('studio') || window.DEFAULT_STUDIO || '';
+  const isDev = p.has('dev');
 
   const root = document.getElementById('artist-login-app');
   root.innerHTML = `
@@ -40,8 +41,20 @@ function render() {
       <hr style="opacity:.2;margin:1rem 0">
       <p>Noch kein Konto?</p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        <a class="button-like" href="/artist-register.html${studio ? `?studio=${encodeURIComponent(studio)}` : ''}">Als Artist registrieren</a>
-        <a class="button-like" href="/home.html${studio ? `?studio=${encodeURIComponent(studio)}` : ''}">Zurück</a>
+        <a class="button-like" href="/artist-register.html${(() => {
+          const q = new URLSearchParams();
+          if (studio) q.set('studio', studio);
+          if (isDev) q.set('dev', '1');
+          const s = q.toString();
+          return s ? `?${s}` : '';
+        })()}">Als Artist registrieren</a>
+        <a class="button-like" href="/home.html${(() => {
+          const q = new URLSearchParams();
+          if (studio) q.set('studio', studio);
+          if (isDev) q.set('dev', '1');
+          const s = q.toString();
+          return s ? `?${s}` : '';
+        })()}">Zurück</a>
       </div>
     </div>
   `;
@@ -77,5 +90,26 @@ function render() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadStudioTheme();
+  const params = new URLSearchParams(location.search);
+  const studio = params.get('studio') || window.DEFAULT_STUDIO || '';
+  // Automatischer Dev-Login: wenn "dev" in URL, versuche direkt einzuloggen
+  if (params.has('dev')) {
+    const userId = 'devartist';
+    const password = 'devpass';
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, password, role: 'artist' })
+      }).then(r => r.json());
+      if (res && res.success) {
+        const qsStudio = studio ? `&studio=${encodeURIComponent(studio)}` : '';
+        location.href = `/artist.html?artistId=${encodeURIComponent(userId)}${qsStudio}&dev=1`;
+        return;
+      }
+    } catch (e) {
+      // Silent fallback to normal render
+    }
+  }
   render();
 });

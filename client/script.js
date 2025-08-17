@@ -21,6 +21,22 @@ document.addEventListener('DOMContentLoaded', () => {
   window.__studio = studioId;
 
   loadStudioConfig(studioId).finally(() => {
+    // Wenn dev-Parameter vorhanden ist, versuche automatischen Dev-Login
+    if (params.has('dev')) {
+      autoDevLogin().then((success) => {
+        if (!success) {
+          // Falls Dev-Login fehlgeschlagen, zeige reguläres Formular
+          const clientId = params.get('clientId');
+          const registerMode = params.get('register');
+          if (clientId && registerMode !== null) {
+            showRegisterForm(clientId);
+          } else {
+            showLoginForm();
+          }
+        }
+      });
+      return;
+    }
     const clientId = params.get('clientId');
     const registerMode = params.get('register');
     if (clientId && registerMode !== null) {
@@ -30,6 +46,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+/**
+ * Automatischer Login für Entwicklung: meldet sich als Test-Client an und
+ * lädt das Kunden-Dashboard. Liefert true bei Erfolg, sonst false.
+ */
+function autoDevLogin() {
+  const userId = 'dev';
+  const password = 'devpass';
+  return fetch(`${API_BASE}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, password, role: 'client' })
+  })
+    .then((resp) => resp.json())
+    .then((data) => {
+      if (data.success) {
+        // dev client könnte unter anderem Namen zurückkommen
+        loadClientDashboard(data.clientId || userId);
+        return true;
+      }
+      return false;
+    })
+    .catch(() => false);
+}
 
 /** Studio-Theme laden & anwenden */
 function loadStudioConfig(studioId = null) {

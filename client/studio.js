@@ -42,12 +42,40 @@ async function boot() {
   await setTheme(sel.value);
   sel.addEventListener('change', () => setTheme(sel.value));
 
+  // Automatischer Dev-Login für Studio-Manager
+  const urlParams = new URLSearchParams(window.location.search);
+  const isDev = urlParams.has('dev');
+  const paramStudio = urlParams.get('studio');
+  if (isDev) {
+    // Finde das zu nutzende Studio: Priorität URL-Parameter, sonst erstes
+    const studioId = paramStudio || (studios[0] && studios[0].id) || 'exclusive-ink';
+    // Bestimme Manager-Credentials pro Studio
+    const credMap = {
+      'exclusive-ink': { user: 'manager@exclusive', password: 'pass123' },
+      'secret-ink':    { user: 'manager@secret',    password: 'pass123' },
+      'monkeybrothers':{ user: 'manager@monkey',    password: 'pass123' }
+    };
+    const creds = credMap[studioId] || credMap['exclusive-ink'];
+    try {
+      const res = await fetch(`${API_BASE}/studio/${studioId}/manager/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: creds.user, password: creds.password })
+      }).then(r => r.json());
+      if (res && res.success) {
+        window.location.href = `/index.html?studio=${encodeURIComponent(studioId)}&dev=1`;
+        return;
+      }
+    } catch (e) {
+      // ignore and continue to normal flow
+    }
+  }
+
   document.getElementById('m-login').addEventListener('click', async () => {
     const user = document.getElementById('m-user').value.trim();
     const password = document.getElementById('m-pass').value;
     const studioId = sel.value;
     const res = await fetch(`${API_BASE}/studio/${studioId}/manager/login`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user, password })
     }).then(r => r.json());
 

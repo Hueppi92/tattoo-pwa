@@ -16,8 +16,15 @@ function initDevMenu() {
   const menu = document.createElement('div');
   menu.id = 'dev-menu';
   let linksHtml = '';
+  // Build a base query string that persists current studio and forces dev mode
+  const params = new URLSearchParams(window.location.search);
+  // Default to exclusive-ink if no studio specified
+  if (!params.has('studio')) params.set('studio', 'exclusive-ink');
+  params.set('dev', '1');
+  const baseQuery = params.toString();
   pages.forEach(p => {
-    linksHtml += `<a href="${p.href}">${p.label}</a>`;
+    // Always append the query; pages in this PWA have no existing query in href
+    linksHtml += `<a href="${p.href}?${baseQuery}">${p.label}</a>`;
   });
   menu.innerHTML = linksHtml;
 

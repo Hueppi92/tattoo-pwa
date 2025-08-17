@@ -43,11 +43,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const params   = new URLSearchParams(window.location.search);
   const studioId = params.get('studio') || window.DEFAULT_STUDIO || null;
   const artistId = params.get('artistId');
+  const isDev    = params.has('dev');
 
   loadStudioConfig(studioId).finally(() => {
+    // Automatischer Dev-Login, falls kein artistId und dev-Flag vorhanden
+    if (!artistId && isDev) {
+      const userId = 'devartist';
+      const password = 'devpass';
+      fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, password, role: 'artist' })
+      })
+        .then((resp) => resp.json())
+        .then((res) => {
+          if (res && res.success) {
+            // Direkt Dashboard laden ohne Redirect
+            loadArtistDashboard(userId);
+          } else {
+            // Fallback: Zur Login-Seite zurück
+            const qs = studioId ? `?studio=${encodeURIComponent(studioId)}` : '';
+            window.location.href = `/artist-login.html${qs}`;
+          }
+        })
+        .catch(() => {
+          const qs = studioId ? `?studio=${encodeURIComponent(studioId)}` : '';
+          window.location.href = `/artist-login.html${qs}`;
+        });
+      return;
+    }
     if (!artistId) {
       const qs = studioId ? `?studio=${encodeURIComponent(studioId)}` : '';
-      // Zur Artist-Loginseite (statt Kunden-Login)
       window.location.href = `/artist-login.html${qs}`;
       return;
     }
