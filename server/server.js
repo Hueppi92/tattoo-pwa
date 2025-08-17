@@ -1,5 +1,5 @@
 // server/server.js
-// Minimal-Backend mit SQLite (better-sqlite3) statt data.json
+// Minimal-Backend mit SQLite (better-sqlite3)
 // Start: node server.js  (PORT via env möglich)
 
 import http from 'node:http';
@@ -10,7 +10,6 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import dbApi, { sha256 } from './db.js';
 
-// __dirname sauber aus import.meta.url erzeugen
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // --- Pfade & Helpers ---------------------------------------------------------
@@ -22,10 +21,7 @@ const UPLOAD_DIRS = {
   final: path.join(UPLOAD_ROOT, 'final'),
   healing: path.join(UPLOAD_ROOT, 'healing'),
 };
-// Verzeichnisse sicherstellen:
-Object.values(UPLOAD_DIRS).forEach((p) => {
-  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
-});
+Object.values(UPLOAD_DIRS).forEach((p) => { if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }); });
 
 function sendJSON(res, status, obj) {
   res.writeHead(status, {
@@ -49,15 +45,11 @@ async function readBody(req) {
   return await new Promise((resolve, reject) => {
     let data = '';
     req.on('data', (c) => (data += c));
-    req.on('end', () => {
-      try { resolve(data ? JSON.parse(data) : {}); }
-      catch (e) { reject(e); }
-    });
+    req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(e); } });
     req.on('error', reject);
   });
 }
 function saveDataUrlToFile(dataUrl, targetDir) {
-  // dataUrl: "data:image/png;base64,...."
   const m = /^data:(.+);base64,(.*)$/.exec(dataUrl || '');
   if (!m) return null;
   const ext = (m[1].split('/')[1] || 'bin').split('+')[0];
@@ -69,7 +61,6 @@ function saveDataUrlToFile(dataUrl, targetDir) {
   return { id, filename: fileName, path: `/uploads/${path.basename(targetDir)}/${fileName}` };
 }
 function ensureArray(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
-
 function serveUploads(req, res, pathname) {
   const rel = pathname.replace(/^\/uploads\//, '');
   const filePath = path.join(UPLOAD_ROOT, rel);
@@ -78,16 +69,15 @@ function serveUploads(req, res, pathname) {
   const ext = path.extname(filePath).toLowerCase();
   const type =
     ext === '.png' ? 'image/png'
-      : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
-      : ext === '.webp' ? 'image/webp'
-      : 'application/octet-stream';
+    : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+    : ext === '.webp' ? 'image/webp'
+    : 'application/octet-stream';
   res.writeHead(200, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*' });
   fs.createReadStream(filePath).pipe(res);
 }
 
 // --- Server & Routing --------------------------------------------------------
 const server = http.createServer(async (req, res) => {
-  // CORS Preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -101,45 +91,40 @@ const server = http.createServer(async (req, res) => {
   const pathname = parsed.pathname || '/';
   const parts = pathname.split('/').filter(Boolean); // ["api", "...", ...]
 
-  // Statische Uploads
   if (pathname.startsWith('/uploads/')) return serveUploads(req, res, pathname);
-
-  // Nur API-Routen hier
   if (!pathname.startsWith('/api/')) return sendText(res, 404, 'Not Found');
 
   const method = req.method.toUpperCase();
 
   // --- AUTH / REGISTER -------------------------------------------------------
 
-  // POST /api/register   {clientId, password, name?, artistId?, studioId?}
+  // Client-Register
   if (parts[1] === 'register' && method === 'POST') {
     try {
       const { clientId, password, name, artistId, studioId } = await readBody(req);
       if (!clientId || !password) return sendJSON(res, 400, { error: 'clientId und password erforderlich' });
       if (dbApi.getClientById(clientId)) return sendJSON(res, 409, { error: 'Client existiert bereits' });
-      // db.js hasht intern via sha256(password)
-      dbApi.createClient({ id: clientId, name, password, studioId, artistId });
+      dbApi.createClient({ id: clientId, name, password, studioId, artistId }); // hashed in db.js
       return sendJSON(res, 200, { success: true, clientId });
-    } catch (e) {
+    } catch {
       return sendJSON(res, 500, { error: 'Register fehlgeschlagen' });
     }
   }
 
-  // POST /api/artist/register   {artistId, password, name?, studioId?}
+  // Artist-Register
   if (parts[1] === 'artist' && parts[2] === 'register' && method === 'POST') {
     try {
       const { artistId, password, name, studioId } = await readBody(req);
       if (!artistId || !password) return sendJSON(res, 400, { error: 'artistId und password erforderlich' });
       if (dbApi.getArtistById(artistId)) return sendJSON(res, 409, { error: 'Artist existiert bereits' });
-      // db.js hasht intern via sha256(password)
-      dbApi.createArtist({ id: artistId, name, password, studioId });
+      dbApi.createArtist({ id: artistId, name, password, studioId }); // hashed in db.js
       return sendJSON(res, 200, { success: true, artistId });
-    } catch (e) {
+    } catch {
       return sendJSON(res, 500, { error: 'Artist-Register fehlgeschlagen' });
     }
   }
 
-  // POST /api/login   {userId, password, role: 'client'|'artist'}
+  // Login
   if (parts[1] === 'login' && method === 'POST') {
     try {
       const { userId, password, role } = await readBody(req);
@@ -150,13 +135,11 @@ const server = http.createServer(async (req, res) => {
         if (!c || c.password !== sha256(password)) return sendJSON(res, 401, { error: 'Ungültige Zugangsdaten' });
         return sendJSON(res, 200, { success: true, clientId: c.id });
       }
-
       if (role === 'artist') {
         const a = dbApi.getArtistById(userId);
         if (!a || a.password !== sha256(password)) return sendJSON(res, 401, { error: 'Ungültige Zugangsdaten' });
         return sendJSON(res, 200, { success: true, artistId: a.id });
       }
-
       return sendJSON(res, 400, { error: 'Unbekannte Rolle' });
     } catch {
       return sendJSON(res, 500, { error: 'Login fehlgeschlagen' });
@@ -165,7 +148,7 @@ const server = http.createServer(async (req, res) => {
 
   // --- CLIENT ---------------------------------------------------------------
 
-  // GET /api/client/:id
+  // Client-Details
   if (parts[1] === 'client' && parts[2] && method === 'GET' && parts.length === 3) {
     const c = dbApi.getClientById(parts[2]);
     if (!c) return sendJSON(res, 404, { error: 'Client nicht gefunden' });
@@ -183,12 +166,12 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  // GET /api/client/:id/wannado   -> nur Wanna-Do des zugewiesenen Artists
+  // Client: sichtbare Wanna-Dos (nur Artist des Clients)
   if (parts[1] === 'client' && parts[2] && parts[3] === 'wannado' && method === 'GET') {
     return sendJSON(res, 200, dbApi.listWannadoForClient(parts[2]));
   }
 
-  // POST /api/client/:id/ideas { images: [{name,data}] }
+  // Client: Ideas-Upload
   if (parts[1] === 'client' && parts[2] && parts[3] === 'ideas' && method === 'POST') {
     const c = dbApi.getClientById(parts[2]);
     if (!c) return sendJSON(res, 404, { error: 'Client nicht gefunden' });
@@ -199,16 +182,15 @@ const server = http.createServer(async (req, res) => {
         const saved = saveDataUrlToFile(img.data, UPLOAD_DIRS.ideas);
         if (saved) results.push({ id: saved.id, filename: img.name || saved.filename, path: saved.path, kind: 'idea' });
       });
-      // Kompatibel zu verschiedenen db.js-Versionen:
       if (typeof dbApi.addImagesForClient === 'function') dbApi.addImagesForClient(c.id, results);
-      else if (typeof dbApi.addImages === 'function') dbApi.addImages(c.id, results);
+      else dbApi.addImages(c.id, results);
       return sendJSON(res, 200, { success: true, uploaded: results.length });
     } catch {
       return sendJSON(res, 500, { error: 'Upload fehlgeschlagen' });
     }
   }
 
-  // POST /api/client/:id/healing  { images: [{name,data,comment?}] }
+  // Client: Healing-Upload
   if (parts[1] === 'client' && parts[2] && parts[3] === 'healing' && method === 'POST') {
     try {
       const clientId = parts[2];
@@ -216,18 +198,11 @@ const server = http.createServer(async (req, res) => {
       const rows = [];
       ensureArray(images).forEach((img) => {
         const saved = saveDataUrlToFile(img.data, UPLOAD_DIRS.healing);
-        if (saved) rows.push({
-          id: saved.id,
-          filename: img.name || saved.filename,
-          path: saved.path,
-          comment: img.comment || null
-        });
+        if (saved) rows.push({ id: saved.id, filename: img.name || saved.filename, path: saved.path, comment: img.comment || null });
       });
       if (typeof dbApi.addHealingForClient === 'function') dbApi.addHealingForClient(clientId, rows);
-      else if (typeof dbApi.addImagesForClient === 'function')
-        dbApi.addImagesForClient(clientId, rows.map(x => ({ ...x, kind: 'healing' })));
-      else if (typeof dbApi.addImages === 'function')
-        dbApi.addImages(clientId, rows.map(x => ({ ...x, kind: 'healing' })));
+      else if (typeof dbApi.addImagesForClient === 'function') dbApi.addImagesForClient(clientId, rows.map(x => ({ ...x, kind: 'healing' })));
+      else dbApi.addImages(clientId, rows.map(x => ({ ...x, kind: 'healing' })));
       return sendJSON(res, 200, { success: true, uploaded: rows.length });
     } catch {
       return sendJSON(res, 500, { error: 'Healing-Upload fehlgeschlagen' });
@@ -236,9 +211,13 @@ const server = http.createServer(async (req, res) => {
 
   // --- ARTIST ---------------------------------------------------------------
 
-  // GET /api/artist/:id/appointments
+  // Artist: Kundenliste
+  if (parts[1] === 'artist' && parts[2] && parts[3] === 'clients' && method === 'GET') {
+    return sendJSON(res, 200, dbApi.listArtistClients(parts[2]));
+  }
+
+  // Artist: Termine (Clients des Artists)
   if (parts[1] === 'artist' && parts[2] && parts[3] === 'appointments' && method === 'GET') {
-    // Beispiel: hole alle Termine der dem Artist zugewiesenen Clients
     const artistId = parts[2];
     const clients = dbApi.listArtistClients(artistId);
     let list = [];
@@ -246,71 +225,81 @@ const server = http.createServer(async (req, res) => {
     return sendJSON(res, 200, list);
   }
 
-  // GET /api/artist/:id/clients
-  if (parts[1] === 'artist' && parts[2] && parts[3] === 'clients' && method === 'GET') {
-    return sendJSON(res, 200, dbApi.listArtistClients(parts[2]));
-  }
-
-  // GET /api/artist/:id/wannado
+  // Artist: Wanna-Do abrufen
   if (parts[1] === 'artist' && parts[2] && parts[3] === 'wannado' && method === 'GET') {
-    if (typeof dbApi.listWannadoForArtist === 'function') {
-      return sendJSON(res, 200, dbApi.listWannadoForArtist(parts[2]));
-    }
-    // Fallback: falls nur eine generische liste existiert
-    return sendJSON(res, 200, dbApi.listWannado ? dbApi.listWannado(parts[2]) : []);
+    return sendJSON(res, 200, dbApi.listWannadoForArtist(parts[2]));
   }
 
-  // POST /api/artist/:id/wannado  { images: [{name,data}] }
-  if (parts[1] === 'artist' && parts[2] && parts[3] === 'wannado' && method === 'POST') {
+  // Artist: Wanna-Do Upload (beide Varianten unterstützt)
+  //  - POST /api/artist/:id/wannado
+  //  - POST /api/artist/wannado?artistId=... (oder Body.artistId)
+  if (parts[1] === 'artist' && method === 'POST' &&
+     ((parts[2] && parts[3] === 'wannado') || (parts[2] === 'wannado' && !parts[3]))) {
     try {
-      const artistId = parts[2];
-      const { images } = await readBody(req);
+      const body = await readBody(req);
+      const artistId = (parts[3] === 'wannado') ? parts[2] : (body.artistId || parsed.query?.artistId);
+      if (!artistId) return sendJSON(res, 400, { error: 'artistId erforderlich' });
+
+      const images = body.images || [];
       const results = [];
       ensureArray(images).forEach((img) => {
         const saved = saveDataUrlToFile(img.data, UPLOAD_DIRS.wannado);
         if (saved) results.push({ id: saved.id, filename: img.name || saved.filename, path: saved.path });
       });
-      if (typeof dbApi.addWannado === 'function' && dbApi.addWannado.length >= 2) {
-        dbApi.addWannado(artistId, results); // bevorzugte Signatur
-      } else if (typeof dbApi.addWannado === 'function') {
-        dbApi.addWannado(results); // ältere Signatur
-      }
+      dbApi.addWannado(artistId, results);
       return sendJSON(res, 200, { success: true, uploaded: results.length });
     } catch {
       return sendJSON(res, 500, { error: 'Upload fehlgeschlagen' });
     }
   }
 
-  // GET /api/artist/:id/healing  -> Healing-Bilder aller eigenen Kunden
+  // Artist: Healing seiner Kunden
   if (parts[1] === 'artist' && parts[2] && parts[3] === 'healing' && method === 'GET') {
-    if (typeof dbApi.listHealingForArtist === 'function') {
-      return sendJSON(res, 200, dbApi.listHealingForArtist(parts[2]));
-    }
-    // Fallback – falls noch nicht implementiert:
-    return sendJSON(res, 200, []);
+    return sendJSON(res, 200, dbApi.listHealingForArtist(parts[2]));
   }
 
-  // Liste Artists (für Dropdown): GET /api/artists?studio=...
-  if (parts[1] === 'artists' && method === 'GET') {
-    const studio = parsed.query?.studio || null;
-    return sendJSON(res, 200, dbApi.listArtists(studio));
+  // Artist: Templates/Final Upload für bestimmten Client
+  // POST /api/artist/:id/upload/templates|final  Body: { clientId, images:[{name,data}] }
+  if (parts[1] === 'artist' && parts[2] && parts[3] === 'upload' && parts[4] && method === 'POST') {
+    const artistId = parts[2];
+    const kind = parts[4]; // 'templates' | 'final'
+    const valid = ['templates', 'final'];
+    if (!valid.includes(kind)) return sendJSON(res, 400, { error: 'Ungültiger Upload-Typ' });
+    try {
+      const { clientId, images } = await readBody(req);
+      if (!clientId) return sendJSON(res, 400, { error: 'clientId erforderlich' });
+      const client = dbApi.getClientById(clientId);
+      if (!client) return sendJSON(res, 404, { error: 'Client nicht gefunden' });
+      if (client.artist_id && client.artist_id !== artistId) {
+        return sendJSON(res, 403, { error: 'Client gehört nicht zu diesem Artist' });
+      }
+      const dir = kind === 'templates' ? UPLOAD_DIRS.templates : UPLOAD_DIRS.final;
+      const rows = [];
+      ensureArray(images).forEach((img) => {
+        const saved = saveDataUrlToFile(img.data, dir);
+        if (saved) rows.push({ id: saved.id, filename: img.name || saved.filename, path: saved.path, kind: (kind === 'templates' ? 'template' : 'final') });
+      });
+      if (typeof dbApi.addImagesForClient === 'function') dbApi.addImagesForClient(clientId, rows);
+      else dbApi.addImages(clientId, rows);
+      return sendJSON(res, 200, { success: true, uploaded: rows.length });
+    } catch {
+      return sendJSON(res, 500, { error: 'Upload fehlgeschlagen' });
+    }
   }
 
   // --- STUDIOS --------------------------------------------------------------
 
-  // GET /api/studios
   if (parts[1] === 'studios' && method === 'GET') {
     return sendJSON(res, 200, dbApi.getStudios());
   }
 
-  // GET /api/studio/:id/config
   if (parts[1] === 'studio' && parts[2] && parts[3] === 'config' && method === 'GET') {
     const t = dbApi.getStudioTheme(parts[2]);
     if (!t) return sendJSON(res, 404, { error: 'Studio nicht gefunden' });
     return sendJSON(res, 200, t);
   }
 
-  // POST /api/studio/:id/manager/login  {user,password}
+  // Manager-Login
   if (parts[1] === 'studio' && parts[2] && parts[3] === 'manager' && parts[4] === 'login' && method === 'POST') {
     const { user, password } = await readBody(req);
     const ok = dbApi.checkManager(parts[2], user, password);
@@ -318,13 +307,11 @@ const server = http.createServer(async (req, res) => {
               : sendJSON(res, 401, { success: false, error: 'Ungültige Zugangsdaten' });
   }
 
-  // POST /api/studio/:id/assign   { clientId, artistId }
+  // Manager: Zuweisen Client ↔ Artist
   if (parts[1] === 'studio' && parts[2] && parts[3] === 'assign' && method === 'POST') {
     const studioId = parts[2];
     const { clientId, artistId } = await readBody(req);
     if (!clientId || !artistId) return sendJSON(res, 400, { error: 'clientId und artistId erforderlich' });
-
-    // (Optional: prüfen, ob beide zum Studio gehören)
     const c = dbApi.getClientById(clientId);
     const a = dbApi.getArtistById(artistId);
     if (!c || !a || (c.studio_id && c.studio_id !== studioId) || (a.studio_id && a.studio_id !== studioId)) {
@@ -334,12 +321,11 @@ const server = http.createServer(async (req, res) => {
     return sendJSON(res, 200, { success: true });
   }
 
-  // GET /api/studio/:id/overview
+  // Manager: Übersicht
   if (parts[1] === 'studio' && parts[2] && parts[3] === 'overview' && method === 'GET') {
     return sendJSON(res, 200, dbApi.studioOverview(parts[2]));
   }
 
-  // Fallback
   return sendJSON(res, 404, { error: 'Endpoint nicht gefunden' });
 });
 

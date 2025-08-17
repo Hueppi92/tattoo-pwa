@@ -162,3 +162,44 @@ body[data-studio="exclusive-ink"] button {
   border-radius: 10px;
   box-shadow: 0 0 6px rgba(197,157,95,.35);
 }
+
+/* --- Globaler Kontrast-Fix für dunkle Hintergründe (Tabs/Nav/Panel) --- */
+.app-nav, .tabs, .tabbar, .topbar {
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.18);
+}
+
+.tabs a, .tab, .app-nav a, .tabbar a {
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.6);
+}
+
+.tabs a.active, .tab.active {
+  background: rgba(255,255,255,0.16);
+  border-radius: 8px;
+}
+
+.panel, .card, .upload-box {
+  background: rgba(0,0,0,0.60);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+}
+
+.panel input, .panel textarea, .panel select,
+.upload-box input, .upload-box textarea, .upload-box select {
+  background: rgba(255,255,255,0.9);
+  color: #111;
+}
+
+.button, button, .btn {
+  color: #111;
+}
+
+/* Studio B etwas heller */
+:root[data-studio="secret-ink"] .tabs,
+:root[data-studio="secret-ink"] .app-nav {
+  background: rgba(20,20,35,0.65);
+}
