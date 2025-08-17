@@ -145,12 +145,20 @@ select {
 .success { color: #007a4d; }
 
 /* Optional: Studio-spezifische Feinheiten über data-Attribut */
-body[data-studio="secret-ink"] .form-container,
 body[data-studio="secret-ink"] .card {
+  /* Neuer violetter Look für Beispiel‑Studio B */
   background: rgba(20,16,32,.35);
-  border-color: rgba(106,76,255,.35);
+  border-color: rgba(138,43,226,.35);
 }
 
 body[data-studio="monkeybrothers"] button {
   border-radius: 12px;
+  /* Leichtes Leuchten passend zum orangenen Akzent */
+  box-shadow: 0 0 6px rgba(255,122,0,.35);
+}
+
+/* Goldene Akzente für Beispiel‑Studio A */
+body[data-studio="exclusive-ink"] button {
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(197,157,95,.35);
 }

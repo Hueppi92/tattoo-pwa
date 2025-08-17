@@ -95,14 +95,14 @@
   "studios": [
     {
       "id": "exclusive-ink",
-      "name": "Exclusive Ink",
+      "name": "Beispiel-Studio A",
       "theme": {
-        "primaryColor": "#0f0f10",
-        "secondaryColor": "#f7f5f2",
-        "accentColor": "#c9a56c",
-        "fontHead": "'Playfair Display', serif",
-        "fontBody": "Inter, system-ui, sans-serif",
-        "bg": "/assets/marble-bg.png"
+        "primaryColor": "#1a1a1d",
+        "secondaryColor": "#f3f3f3",
+        "accentColor": "#c59d5f",
+        "fontHead": "'Cinzel', serif",
+        "fontBody": "Open Sans, system-ui, sans-serif",
+        "bg": "/assets/bg-a.png"
       },
       "manager": {
         "user": "manager@exclusive",
@@ -111,14 +111,14 @@
     },
     {
       "id": "secret-ink",
-      "name": "Secret-Ink",
+      "name": "Beispiel-Studio B",
       "theme": {
-        "primaryColor": "#e9e6f2",
-        "secondaryColor": "#0a0a0f",
-        "accentColor": "#6a4cff",
-        "fontHead": "Poppins, system-ui, sans-serif",
-        "fontBody": "Poppins, system-ui, sans-serif",
-        "bg": "/assets/marble-bg.png"
+        "primaryColor": "#f5f5f5",
+        "secondaryColor": "#1e1a2d",
+        "accentColor": "#8a2be2",
+        "fontHead": "Montserrat, system-ui, sans-serif",
+        "fontBody": "Raleway, system-ui, sans-serif",
+        "bg": "/assets/bg-b.png"
       },
       "manager": {
         "user": "manager@secret",
@@ -127,15 +127,15 @@
     },
     {
       "id": "monkeybrothers",
-      "name": "Monkeybrothers",
+      "name": "Beispiel-Studio C",
       "theme": {
-        "primaryColor": "#1d1e22",
+        "primaryColor": "#1f262a",
         "secondaryColor": "#faf7f1",
         "accentColor": "#ff7a00",
         "accentColor2": "#00c2ff",
-        "fontHead": "Montserrat, system-ui, sans-serif",
-        "fontBody": "Inter, system-ui, sans-serif",
-        "bg": "/assets/marble-bg.png"
+        "fontHead": "Bebas Neue, system-ui, sans-serif",
+        "fontBody": "Roboto, system-ui, sans-serif",
+        "bg": "/assets/bg-c.png"
       },
       "manager": {
         "user": "manager@monkey",

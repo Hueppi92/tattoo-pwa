@@ -16,24 +16,30 @@
   --card-border: rgba(255, 255, 255, 0.4);
   --card-blur: 10px;
 }
+/* Luxuriöse Variante (Beispiel-Studio A) */
 .card--lux {
   background: rgba(255,255,255,.18);
-  border: 1px solid rgba(201,165,108,.45);
+  /* Rahmenfarbe an neuen Goldton angepasst */
+  border: 1px solid rgba(197,157,95,.45);
   backdrop-filter: blur(14px);
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0,0,0,.15);
 }
+/* Secret Ink / Beispiel-Studio B */
 .card--ink {
   background: rgba(20,16,32,.35);
-  border: 1px solid rgba(106,76,255,.35);
+  /* Violett als Akzentfarbe für Rahmen und Schatten */
+  border: 1px solid rgba(138,43,226,.35);
   backdrop-filter: blur(16px);
-  box-shadow: 0 0 24px rgba(106,76,255,.15);
+  box-shadow: 0 0 24px rgba(138,43,226,.15);
   border-radius: 16px;
 }
+/* Urban / Beispiel-Studio C */
 .card--urban {
   background: rgba(255,255,255,.20);
-  border: 1px solid rgba(29,30,34,.25);
+  /* Orange als Hauptakzent; dezenter Rand und Schatten */
+  border: 1px solid rgba(255,122,0,.35);
   backdrop-filter: blur(12px);
-  box-shadow: 0 8px 28px rgba(0,0,0,.12);
+  box-shadow: 0 8px 28px rgba(255,122,0,.12);
   border-radius: 14px;
 }
