@@ -1,5 +1,5 @@
 // client/config.js
-// Stellt die API-URL je nach Umgebung korrekt ein.
+// Stellt die API-URL je nach Umgebung korrekt ein und setzt ein gültiges Default-Studio.
 (() => {
   const host = location.hostname;
   const isProd = host.endsWith('onrender.com') || host.endsWith('vercel.app') || host.endsWith('netlify.app');
@@ -14,6 +14,6 @@
     window.API_BASE = `${location.origin}/api`;
   }
 
-  // Optionaler Default
-  window.DEFAULT_STUDIO = 'exclusive-ink';
+  // Existierende Studios in den Seed-Daten: studioA, studioB
+  window.DEFAULT_STUDIO = 'studioA';
 })();
