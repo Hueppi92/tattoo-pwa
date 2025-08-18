@@ -11,13 +11,15 @@ import dbApi, { sha256 } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// --- Pfade -------------------------------------------------------------------
 const CLIENT_ROOT = path.join(__dirname, '..', 'client');
 const UPLOAD_ROOT = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
-for (const d of ['wannado','ideas','templates','final','healing']) {
+for (const d of ['wannado', 'ideas', 'templates', 'final', 'healing']) {
   fs.mkdirSync(path.join(UPLOAD_ROOT, d), { recursive: true });
 }
 
+// --- Helpers -----------------------------------------------------------------
 function sendJSON(res, status, obj) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -71,14 +73,15 @@ function saveDataUrlToFile(dataUrl, targetDir) {
   fs.writeFileSync(filePath, buf);
   return { id, filename: fileName, path: `/uploads/${path.basename(targetDir)}/${fileName}` };
 }
-function ensureArray(x){ return Array.isArray(x) ? x : (x ? [x] : []); }
+function ensureArray(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
 
+// --- Server ------------------------------------------------------------------
 const server = http.createServer(async (req, res) => {
   const { method } = req;
   const parsed = url.parse(req.url, true);
   const pathname = parsed.pathname || '/';
 
-  // CORS preflight
+  // CORS Preflight
   if (method === 'OPTIONS') return sendText(res, 200, 'OK');
 
   // Serve uploads
@@ -92,49 +95,40 @@ const server = http.createServer(async (req, res) => {
 
   // API
   if (pathname.startsWith('/api/')) {
-    // GET /api/health
-if (parts[0] === 'health' && method === 'GET') {
-  return sendJSON(res, 200, {
-    ok: true,
-    time: new Date().toISOString(),
-    dbPath: process.env.DB_PATH,
-    uploadDir: process.env.UPLOAD_DIR
-  });
-}
-
-
+    // parts MUSS zuerst deklariert werden (wichtig!)
     const parts = pathname.replace(/^\/api\//, '').split('/');
+
     try {
-      // Health
-      if (parts[0] === 'health' && method === 'GET') {
+      // --- HEALTH ------------------------------------------------------------
+      if (method === 'GET' && parts[0] === 'health') {
         return sendJSON(res, 200, {
           ok: true,
           time: new Date().toISOString(),
           dbPath: process.env.DB_PATH,
-          uploadDir: process.env.UPLOAD_DIR
+          uploadDir: process.env.UPLOAD_DIR,
         });
       }
 
-      // Studios
-      if (parts[0] === 'studios' && method === 'GET') {
+      // --- STUDIOS -----------------------------------------------------------
+      if (method === 'GET' && parts[0] === 'studios') {
         return sendJSON(res, 200, dbApi.getStudios());
       }
-      if (parts[0] === 'studio' && parts[1] && parts[2] === 'config' && method === 'GET') {
+      if (method === 'GET' && parts[0] === 'studio' && parts[1] && parts[2] === 'config') {
         const t = dbApi.getStudioTheme(parts[1]);
         return t ? sendJSON(res, 200, t) : sendJSON(res, 404, { error: 'Studio nicht gefunden' });
       }
-      if (parts[0] === 'studio' && parts[1] && parts[2] === 'manager' && parts[3] === 'login' && method === 'POST') {
+      if (method === 'POST' && parts[0] === 'studio' && parts[1] && parts[2] === 'manager' && parts[3] === 'login') {
         const { user, password } = await readBody(req);
         const ok = dbApi.checkManager(parts[1], user, password);
         return ok ? sendJSON(res, 200, { success: true, studioId: parts[1] })
                   : sendJSON(res, 401, { success: false, error: 'Ungültige Zugangsdaten' });
       }
-      if (parts[0] === 'studio' && parts[1] && parts[2] === 'overview' && method === 'GET') {
+      if (method === 'GET' && parts[0] === 'studio' && parts[1] && parts[2] === 'overview') {
         return sendJSON(res, 200, dbApi.studioOverview(parts[1]));
       }
 
-      // Login (client/artist)
-      if (parts[0] === 'login' && method === 'POST') {
+      // --- LOGIN (client/artist) --------------------------------------------
+      if (method === 'POST' && parts[0] === 'login') {
         const { userId, password, role } = await readBody(req);
         if (!userId || !password || !role) return sendJSON(res, 400, { error: 'userId, password, role erforderlich' });
 
@@ -151,8 +145,8 @@ if (parts[0] === 'health' && method === 'GET') {
         return sendJSON(res, 400, { error: 'Unbekannte Rolle' });
       }
 
-      // Artist uploads (Beispiel)
-      if (parts[0] === 'artist' && parts[1] && parts[2] === 'upload' && parts[3] && method === 'POST') {
+      // --- ARTIST Upload-Beispiel -------------------------------------------
+      if (method === 'POST' && parts[0] === 'artist' && parts[1] && parts[2] === 'upload' && parts[3]) {
         const artistId = parts[1];
         const kind = parts[3]; // 'templates' | 'final'
         const valid = ['templates', 'final'];
@@ -164,6 +158,7 @@ if (parts[0] === 'health' && method === 'GET') {
         return sendJSON(res, 200, { success: true, files: saved });
       }
 
+      // Fallback für unbekannte API-Routen
       return sendJSON(res, 404, { error: 'Endpoint nicht gefunden' });
     } catch (e) {
       console.error('API error:', e);
@@ -183,11 +178,12 @@ if (parts[0] === 'health' && method === 'GET') {
   sendText(res, 404, 'Not Found');
 });
 
-
-
-const PORT = process.env.PORT || 3001;
+// --- Extra Log für Crashs ----------------------------------------------------
 process.on('unhandledRejection', err => console.error('unhandledRejection', err));
 process.on('uncaughtException', err => console.error('uncaughtException', err));
+
+// --- Start -------------------------------------------------------------------
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`✅ Server listening on :${PORT}`);
   console.log(`DB_PATH = ${process.env.DB_PATH}`);
