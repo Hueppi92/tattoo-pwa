@@ -92,6 +92,17 @@ const server = http.createServer(async (req, res) => {
 
   // API
   if (pathname.startsWith('/api/')) {
+    // GET /api/health
+if (parts[0] === 'health' && method === 'GET') {
+  return sendJSON(res, 200, {
+    ok: true,
+    time: new Date().toISOString(),
+    dbPath: process.env.DB_PATH,
+    uploadDir: process.env.UPLOAD_DIR
+  });
+}
+
+
     const parts = pathname.replace(/^\/api\//, '').split('/');
     try {
       // Health
