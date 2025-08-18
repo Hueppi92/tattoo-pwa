@@ -5,11 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-//const DB_PATH = path.join(__dirname, 'db.sqlite');
-const db = new Database(DB_PATH);
+
 // oben in db.js:
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'db.sqlite');
 // (nicht fest /var/data)
+//const DB_PATH = path.join(__dirname, 'db.sqlite');
+const db = new Database(DB_PATH);
 
 export const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 

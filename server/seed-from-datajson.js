@@ -10,8 +10,7 @@ import { createHash } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = path.join(__dirname, 'data.json');
-const dbPath = path.join(__dirname, 'db.sqlite');
-
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'db.sqlite');
 if (!fs.existsSync(dataFile)) {
   console.error('❌ server/data.json nicht gefunden:', dataFile);
   process.exit(1);
