@@ -183,7 +183,11 @@ if (parts[0] === 'health' && method === 'GET') {
   sendText(res, 404, 'Not Found');
 });
 
+
+
 const PORT = process.env.PORT || 3001;
+process.on('unhandledRejection', err => console.error('unhandledRejection', err));
+process.on('uncaughtException', err => console.error('uncaughtException', err));
 server.listen(PORT, () => {
   console.log(`✅ Server listening on :${PORT}`);
   console.log(`DB_PATH = ${process.env.DB_PATH}`);
