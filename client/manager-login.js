@@ -1,10 +1,9 @@
-// client/artist-login.js
-// Artist-Login gegen /api/artist/login (email + password), danach Redirect zu /artist.html
+// client/manager-login.js
+// Manager-Login gegen /api/manager/login (email + password), danach Redirect zu /studio.html
 
 (() => {
-  const API_BASE = (window.API_BASE || '/api').replace(/\/+$/, ''); // ohne trailing slash
+  const API_BASE = (window.API_BASE || '/api').replace(/\/+$/, '');
 
-  // Mini-Helpers --------------------------------------------------------------
   const h = (tag, props = {}, ...children) => {
     const el = document.createElement(tag);
     for (const [k, v] of Object.entries(props || {})) {
@@ -22,18 +21,17 @@
 
   const $ = (sel, root = document) => root.querySelector(sel);
 
-  // UI-Gerüst -----------------------------------------------------------------
   function buildUI() {
     const $root = $('#app') || document.body;
 
-    const $title = h('h1', { class: 'title' }, 'Artist Login');
+    const $title = h('h1', { class: 'title' }, 'Manager Login');
     const $msg = h('div', { id: 'login-msg', class: 'msg' });
 
     const $labelEmail = h('label', { for: 'login-email' }, 'E‑Mail');
     const $email = h('input', {
       id: 'login-email',
       type: 'email',
-      placeholder: 'z. B. mia@demo.app',
+      placeholder: 'z. B. admin@demo.app',
       autocomplete: 'username',
       required: 'required'
     });
@@ -57,11 +55,10 @@
       h('div', { class: 'field' }, $labelEmail, $email),
       h('div', { class: 'field' }, $labelPass, $pass),
       h('div', { class: 'actions' }, $btn),
-      h('p', { class: 'hint' }, 'Demo: ', h('code', {}, 'mia@demo.app / demo'))
+      h('p', { class: 'hint' }, 'Demo: ', h('code', {}, 'admin@demo.app / demo'))
     );
 
-    // simple Styles fallback (falls CSS nicht geladen wurde)
-    // Du kannst diesen Block löschen, wenn style.css/theme.css korrekt wirken.
+    // Fallback-Styles, falls CSS mal nicht lädt
     const ensureBaseStyles = () => {
       const hasLink = [...document.styleSheets].some(s => (s.href || '').includes('style.css'));
       if (!hasLink) {
@@ -91,7 +88,6 @@
     $root.innerHTML = '';
     $root.appendChild($form);
 
-    // Login-Handler -----------------------------------------------------------
     const setMsg = (text, ok = false) => {
       $msg.textContent = text || '';
       $msg.style.color = ok ? '#0a7' : '#c00';
@@ -109,7 +105,7 @@
 
       try {
         setMsg('Anmeldung läuft …', true);
-        const res = await fetch(`${API_BASE}/artist/login`, {
+        const res = await fetch(`${API_BASE}/manager/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -121,22 +117,19 @@
         }
 
         const data = await res.json();
-
-        // Optional: Token/User im Storage ablegen (falls Backend Token liefert)
         try {
           if (data?.token) localStorage.setItem('auth_token', data.token);
-          if (data?.artist) localStorage.setItem('artist', JSON.stringify(data.artist));
+          if (data?.manager) localStorage.setItem('manager', JSON.stringify(data.manager));
         } catch (_) {}
 
         setMsg('Erfolgreich angemeldet. Weiterleitung …', true);
-        // Redirect ins Artist-Dashboard:
-        window.location.href = '/artist.html';
+        // Redirect ins Manager/Studio Dashboard:
+        window.location.href = '/studio.html';
       } catch (e) {
         setMsg(e.message || 'Login fehlgeschlagen.');
       }
     });
 
-    // Enter‑Key submit
     [$email, $pass].forEach(inp =>
       inp.addEventListener('keydown', (ev) => {
         if (ev.key === 'Enter') $btn.click();
@@ -144,7 +137,6 @@
     );
   }
 
-  // Start ---------------------------------------------------------------------
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', buildUI);
   } else {

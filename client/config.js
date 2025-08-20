@@ -1,19 +1,17 @@
 // client/config.js
-// Stellt die API-URL je nach Umgebung korrekt ein und setzt ein gültiges Default-Studio.
-(() => {
-  const host = location.hostname;
-  const isProd = host.endsWith('onrender.com') || host.endsWith('vercel.app') || host.endsWith('netlify.app');
-  const isLocal = host === '' || host === 'localhost' || host === '127.0.0.1';
+// Zentrale Konfiguration fürs Frontend
 
-  if (isProd) {
-    // Backend läuft auf derselben Origin wie das Frontend
-    window.API_BASE = `${location.origin}/api`;
-  } else if (isLocal) {
-    window.API_BASE = 'http://localhost:3001/api';
-  } else {
-    window.API_BASE = `${location.origin}/api`;
-  }
+// API-Basis: same-origin über den Node-Service,
+// der sowohl PWA als auch API ausliefert.
+window.API_BASE = '/api';
 
-  // Existierende Studios in den Seed-Daten: studioA, studioB
-  window.DEFAULT_STUDIO = 'studioA';
-})();
+// (Optional) Studio-Konfiguration – falls du später Multimandanten willst.
+// window.STUDIO_ID = 'default-studio';
+
+// (Optional) Debug-Flag für ausführlichere Logs im Browser.
+window.APP_DEBUG = false;
+
+// Helper für Logging (nur wenn APP_DEBUG=true)
+window.log = (...args) => {
+  if (window.APP_DEBUG) console.log('[PWA]', ...args);
+};
