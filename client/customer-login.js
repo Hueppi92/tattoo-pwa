@@ -97,11 +97,12 @@
         try {
           if (data?.token) localStorage.setItem('auth_token', data.token);
           if (data?.customer) localStorage.setItem('customer', JSON.stringify(data.customer));
+          localStorage.setItem('role','customer');
         } catch (_) {}
 
         setMsg('Erfolgreich angemeldet. Weiterleitung …', true);
         // Redirect ins Customer-Dashboard:
-        window.location.href = '/home.html';
+        window.location.href = '/dashboard.html';
       } catch (e) {
         setMsg(e.message || 'Login fehlgeschlagen.');
       }

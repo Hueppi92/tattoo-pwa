@@ -120,11 +120,12 @@
         try {
           if (data?.token) localStorage.setItem('auth_token', data.token);
           if (data?.manager) localStorage.setItem('manager', JSON.stringify(data.manager));
+          localStorage.setItem('role','manager');
         } catch (_) {}
 
         setMsg('Erfolgreich angemeldet. Weiterleitung …', true);
         // Redirect ins Manager/Studio Dashboard:
-        window.location.href = '/studio.html';
+        window.location.href = '/dashboard.html';
       } catch (e) {
         setMsg(e.message || 'Login fehlgeschlagen.');
       }

@@ -126,11 +126,12 @@
         try {
           if (data?.token) localStorage.setItem('auth_token', data.token);
           if (data?.artist) localStorage.setItem('artist', JSON.stringify(data.artist));
+          localStorage.setItem('role','artist');  
         } catch (_) {}
 
         setMsg('Erfolgreich angemeldet. Weiterleitung …', true);
         // Redirect ins Artist-Dashboard:
-        window.location.href = '/artist.html';
+        window.location.href = '/dashboard.html';
       } catch (e) {
         setMsg(e.message || 'Login fehlgeschlagen.');
       }
