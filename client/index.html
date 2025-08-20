@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="manifest" href="./manifest.json" />
-    <link rel="stylesheet" href="./style.css" />
-    <link rel="stylesheet" href="./theme.css" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/theme.css" />
     <title>Meine Tattoo-PWA</title>
     <!-- optional: PWA-Statusleistenfarbe -->
     <meta name="theme-color" content="#0f0f10" />
@@ -14,22 +14,22 @@
     <div id="app"></div>
 
     <!-- Backend-URL & Defaults -->
-    <script src="./config.js"></script>
+    <script src="/config.js"></script>
 
     <!-- App (nur EINMAL laden) -->
-    <script type="module" src="./script.js"></script>
+    <script type="module" src="/script.js"></script>
 
     <!-- Service Worker -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker
-            .register('./service-worker.js') // relativ reicht hier
+            .register('/service-worker.js') // relativ reicht hier
             .catch(err => console.error('SW registration failed', err));
         });
       }
     </script>
     <!-- Dev-Menü für Navigation zwischen Seiten -->
-    <script src="./dev-menu.js"></script>
+    <script src="/dev-menu.js"></script>
   </body>
 </html>
