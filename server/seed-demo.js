@@ -1,28 +1,10 @@
 // server/seed-demo.js
-// Seed-Daten für Demo: Manager, Artists, Customers
-
-import db from './db.js';
-
-function rowCount(table) {
-  try {
-    return db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
-  } catch (e) {
-    return 0;
-  }
-}
-
-(function seedDemo(){
+export default async function seedDemo(db) {
+  const rowCount = (table) => db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n ?? 0;
   const now = new Date().toISOString();
 
-  // Artists ----------------------------------------------------------
-  db.prepare(`CREATE TABLE IF NOT EXISTS artists (
-    id TEXT PRIMARY KEY,
-    name TEXT,
-    email TEXT UNIQUE,
-    password TEXT,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-
+  // Artists
+  if (!tableExists(db, 'artists')) createArtists(db);
   if (rowCount('artists') === 0) {
     db.prepare(`INSERT INTO artists(id,name,email,password,createdAt) VALUES (?,?,?,?,?)`)
       .run('artist-mia','Mia Ink','mia@demo.app','demo',now);
@@ -31,16 +13,8 @@ function rowCount(table) {
     console.log('[seed] artists ok');
   }
 
-  // Customers --------------------------------------------------------
-  db.prepare(`CREATE TABLE IF NOT EXISTS customers (
-    id TEXT PRIMARY KEY,
-    name TEXT,
-    email TEXT UNIQUE,
-    password TEXT,
-    artistId TEXT,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-
+  // Customers (zu Mia)
+  if (!tableExists(db, 'customers')) createCustomers(db);
   if (rowCount('customers') === 0) {
     const ins = db.prepare(`INSERT INTO customers(id,name,email,password,artistId,createdAt) VALUES (?,?,?,?,?,?)`);
     ins.run('cust-lena','Lena','lena@demo.app','demo','artist-mia',now);
@@ -49,18 +23,53 @@ function rowCount(table) {
     console.log('[seed] customers ok');
   }
 
-  // Manager ----------------------------------------------------------
-  db.prepare(`CREATE TABLE IF NOT EXISTS managers (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE,
-    password TEXT,
-    name TEXT,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-
+  // Manager
+  if (!tableExists(db, 'managers')) createManagers(db);
   if (rowCount('managers') === 0) {
     db.prepare(`INSERT INTO managers(id,email,password,name,createdAt) VALUES (?,?,?,?,?)`)
       .run('mgr-admin','admin@demo.app','demo','Studio Admin', now);
     console.log('[seed] managers ok');
   }
-})();
+}
+
+function tableExists(db, name) {
+  try {
+    const row = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(name);
+    return !!row;
+  } catch { return false; }
+}
+
+function createArtists(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS artists (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT UNIQUE,
+      password TEXT,
+      createdAt TEXT DEFAULT (datetime('now'))
+    );
+  `);
+}
+function createCustomers(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT UNIQUE,
+      password TEXT,
+      artistId TEXT,
+      createdAt TEXT DEFAULT (datetime('now'))
+    );
+  `);
+}
+function createManagers(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS managers (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE,
+      password TEXT,
+      name TEXT,
+      createdAt TEXT DEFAULT (datetime('now'))
+    );
+  `);
+}
