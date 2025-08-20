@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
+import './seed-demo.js';
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
