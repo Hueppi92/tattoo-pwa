@@ -1,191 +1,85 @@
-// server/server.js
-// Node Web Service (Render-ready): Static + API + Health
-
-import http from 'node:http';
-import fs from 'node:fs';
-import path from 'node:path';
-import url from 'node:url';
-import { randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
-import dbApi, { sha256 } from './db.js';
+import express from 'express';
+import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// --- Pfade -------------------------------------------------------------------
-const CLIENT_ROOT = path.join(__dirname, '..', 'client');
-const UPLOAD_ROOT = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
-for (const d of ['wannado', 'ideas', 'templates', 'final', 'healing']) {
-  fs.mkdirSync(path.join(UPLOAD_ROOT, d), { recursive: true });
-}
+app.use(cors());
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// --- Helpers -----------------------------------------------------------------
-function sendJSON(res, status, obj) {
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  });
-  res.end(JSON.stringify(obj));
-}
-function sendText(res, status, text) {
-  res.writeHead(status, {
-    'Content-Type': 'text/plain; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  });
-  res.end(text);
-}
-function sendFile(res, filePath) {
-  if (!fs.existsSync(filePath)) return false;
-  const ext = path.extname(filePath).toLowerCase();
-  const type =
-    ext === '.html' ? 'text/html; charset=utf-8' :
-    ext === '.css'  ? 'text/css; charset=utf-8' :
-    ext === '.js'   ? 'application/javascript; charset=utf-8' :
-    ext === '.json' ? 'application/json; charset=utf-8' :
-    ext === '.png'  ? 'image/png' :
-    ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
-    ext === '.webp' ? 'image/webp' :
-    'application/octet-stream';
-  res.writeHead(200, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*' });
-  fs.createReadStream(filePath).pipe(res);
-  return true;
-}
-async function readBody(req) {
-  return await new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', c => (data += c));
-    req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(e); } });
-    req.on('error', reject);
-  });
-}
-function saveDataUrlToFile(dataUrl, targetDir) {
-  const m = /^data:(.+);base64,(.*)$/.exec(dataUrl || '');
-  if (!m) return null;
-  const ext = (m[1].split('/')[1] || 'bin').split('+')[0];
-  const buf = Buffer.from(m[2], 'base64');
-  const id = randomUUID();
-  const fileName = `${id}.${ext}`;
-  const filePath = path.join(targetDir, fileName);
-  fs.writeFileSync(filePath, buf);
-  return { id, filename: fileName, path: `/uploads/${path.basename(targetDir)}/${fileName}` };
-}
-function ensureArray(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- Server ------------------------------------------------------------------
-const server = http.createServer(async (req, res) => {
-  const { method } = req;
-  const parsed = url.parse(req.url, true);
-  const pathname = parsed.pathname || '/';
+const dbPath = path.join(__dirname, 'tattoo.db');
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
 
-  // CORS Preflight
-  if (method === 'OPTIONS') return sendText(res, 200, 'OK');
+db.exec(`
+CREATE TABLE IF NOT EXISTS artists (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  password TEXT
+);
+CREATE TABLE IF NOT EXISTS customers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  password TEXT,
+  artistId TEXT,
+  FOREIGN KEY(artistId) REFERENCES artists(id)
+);
+CREATE TABLE IF NOT EXISTS ideas (
+  id TEXT PRIMARY KEY,
+  customerId TEXT NOT NULL,
+  artistId TEXT NOT NULL,
+  text TEXT,
+  imageUrl TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(customerId) REFERENCES customers(id),
+  FOREIGN KEY(artistId) REFERENCES artists(id)
+);
+CREATE TABLE IF NOT EXISTS templates (
+  id TEXT PRIMARY KEY,
+  customerId TEXT NOT NULL,
+  artistId TEXT NOT NULL,
+  note TEXT,
+  imageUrl TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(customerId) REFERENCES customers(id),
+  FOREIGN KEY(artistId) REFERENCES artists(id)
+);
+CREATE TABLE IF NOT EXISTS wannados (
+  id TEXT PRIMARY KEY,
+  artistId TEXT NOT NULL,
+  title TEXT,
+  imageUrl TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(artistId) REFERENCES artists(id)
+);
+`);
 
-  // Serve uploads
-  if (pathname.startsWith('/uploads/')) {
-    const rel = pathname.replace(/^\/uploads\//, '');
-    const filePath = path.join(UPLOAD_ROOT, rel);
-    if (!filePath.startsWith(UPLOAD_ROOT)) return sendText(res, 403, 'Forbidden');
-    if (!fs.existsSync(filePath)) return sendText(res, 404, 'Not found');
-    return sendFile(res, filePath);
-  }
-
-  // API
-  if (pathname.startsWith('/api/')) {
-    // parts MUSS zuerst deklariert werden (wichtig!)
-    const parts = pathname.replace(/^\/api\//, '').split('/');
-
-    try {
-      // --- HEALTH ------------------------------------------------------------
-      if (method === 'GET' && parts[0] === 'health') {
-        return sendJSON(res, 200, {
-          ok: true,
-          time: new Date().toISOString(),
-          dbPath: process.env.DB_PATH,
-          uploadDir: process.env.UPLOAD_DIR,
-        });
-      }
-
-      // --- STUDIOS -----------------------------------------------------------
-      if (method === 'GET' && parts[0] === 'studios') {
-        return sendJSON(res, 200, dbApi.getStudios());
-      }
-      if (method === 'GET' && parts[0] === 'studio' && parts[1] && parts[2] === 'config') {
-        const t = dbApi.getStudioTheme(parts[1]);
-        return t ? sendJSON(res, 200, t) : sendJSON(res, 404, { error: 'Studio nicht gefunden' });
-      }
-      if (method === 'POST' && parts[0] === 'studio' && parts[1] && parts[2] === 'manager' && parts[3] === 'login') {
-        const { user, password } = await readBody(req);
-        const ok = dbApi.checkManager(parts[1], user, password);
-        return ok ? sendJSON(res, 200, { success: true, studioId: parts[1] })
-                  : sendJSON(res, 401, { success: false, error: 'Ungültige Zugangsdaten' });
-      }
-      if (method === 'GET' && parts[0] === 'studio' && parts[1] && parts[2] === 'overview') {
-        return sendJSON(res, 200, dbApi.studioOverview(parts[1]));
-      }
-
-      // --- LOGIN (client/artist) --------------------------------------------
-      if (method === 'POST' && parts[0] === 'login') {
-        const { userId, password, role } = await readBody(req);
-        if (!userId || !password || !role) return sendJSON(res, 400, { error: 'userId, password, role erforderlich' });
-
-        if (role === 'client') {
-          const c = dbApi.getClientById(userId);
-          if (!c || c.password !== sha256(password)) return sendJSON(res, 401, { error: 'Ungültige Zugangsdaten' });
-          return sendJSON(res, 200, { success: true, clientId: c.id });
-        }
-        if (role === 'artist') {
-          const a = dbApi.getArtistById(userId);
-          if (!a || a.password !== sha256(password)) return sendJSON(res, 401, { error: 'Ungültige Zugangsdaten' });
-          return sendJSON(res, 200, { success: true, artistId: a.id });
-        }
-        return sendJSON(res, 400, { error: 'Unbekannte Rolle' });
-      }
-
-      // --- ARTIST Upload-Beispiel -------------------------------------------
-      if (method === 'POST' && parts[0] === 'artist' && parts[1] && parts[2] === 'upload' && parts[3]) {
-        const artistId = parts[1];
-        const kind = parts[3]; // 'templates' | 'final'
-        const valid = ['templates', 'final'];
-        if (!valid.includes(kind)) return sendJSON(res, 400, { error: 'Ungültiger Upload-Typ' });
-        const { clientId, images } = await readBody(req);
-        if (!clientId) return sendJSON(res, 400, { error: 'clientId erforderlich' });
-        const target = path.join(UPLOAD_ROOT, kind);
-        const saved = ensureArray(images).map(img => saveDataUrlToFile(img?.data || img, target)).filter(Boolean);
-        return sendJSON(res, 200, { success: true, files: saved });
-      }
-
-      // Fallback für unbekannte API-Routen
-      return sendJSON(res, 404, { error: 'Endpoint nicht gefunden' });
-    } catch (e) {
-      console.error('API error:', e);
-      return sendJSON(res, 500, { error: 'Serverfehler' });
+const featuresDir = path.join(__dirname, 'features');
+if (fs.existsSync(featuresDir)) {
+  const files = fs.readdirSync(featuresDir).filter(f => f.endsWith('.js'));
+  for (const f of files) {
+    const mod = await import(path.join(featuresDir, f));
+    if (typeof mod.default === 'function') {
+      mod.default({ app, db, __dirname });
+      console.log('Feature loaded:', f);
     }
   }
+}
 
-  // Static (client)
-  if (pathname === '/' || pathname === '/index.html') {
-    if (sendFile(res, path.join(CLIENT_ROOT, 'index.html'))) return;
-  } else {
-    const safeRel = pathname.replace(/^\/+/, '').replace(/\.\.+/g, '');
-    const filePath = path.join(CLIENT_ROOT, safeRel);
-    if (sendFile(res, filePath)) return;
-  }
-  if (sendFile(res, path.join(CLIENT_ROOT, 'index.html'))) return;
-  sendText(res, 404, 'Not Found');
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, time: new Date().toISOString() });
 });
 
-// --- Extra Log für Crashs ----------------------------------------------------
-process.on('unhandledRejection', err => console.error('unhandledRejection', err));
-process.on('uncaughtException', err => console.error('uncaughtException', err));
-
-// --- Start -------------------------------------------------------------------
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`✅ Server listening on :${PORT}`);
-  console.log(`DB_PATH = ${process.env.DB_PATH}`);
-  console.log(`UPLOAD_DIR = ${process.env.UPLOAD_DIR}`);
+app.listen(PORT, () => {
+  console.log('MVP server listening on http://localhost:' + PORT);
 });
