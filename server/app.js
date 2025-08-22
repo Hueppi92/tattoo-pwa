@@ -40,15 +40,19 @@ app.get("/api/health", (req, res) => {
     res.status(500).json({ ok: false, error: String(e) });
   }
 });
+// Altes studio.html => dauerhaft auf Manager-Portal
+app.get(['/studio.html','/client/studio.html'], (req, res) => {
+  res.redirect(301, '/client/manager.html');
+});
 
 // --- API-Routen mounten ---
 app.use("/api", managerRoutes);
-// app.use("/api", authArtist);
-// app.use("/api", authCustomer);
-// app.use("/api", authManager);
-// app.use("/api", wannados);
-// app.use("/api", ideas);
-// app.use("/api", templates);
+ app.use("/api", authArtist);
+ app.use("/api", authCustomer);
+ app.use("/api", authManager);
+ app.use("/api", wannados);
+ app.use("/api", ideas);
+ app.use("/api", templates);
 
 // SPA-Fallback (optional, wenn du client‑Routing brauchst):
 // app.get("*", (req, res) => {

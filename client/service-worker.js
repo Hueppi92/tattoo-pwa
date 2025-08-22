@@ -5,7 +5,7 @@
  * - SPA: Navigation -> /index.html Fallback
  */
 
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE_NAME = `tattoo-pwa-${VERSION}`;
 
 const OFFLINE_URLS = [
@@ -31,14 +31,15 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((names) =>
-        Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
-      )
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => {
+      if (!k.endsWith(VERSION)) return caches.delete(k);
+    }));
+    await self.clients.claim();
+  })());
 });
+
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
