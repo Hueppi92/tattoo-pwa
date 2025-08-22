@@ -11,12 +11,12 @@ const __dirname = path.dirname(__filename);
 import managerRoutes from "./features/manager.js";           // <-- RELATIVER Import!
 import db from "./db.js";                                    // DB wird initialisiert
 // Optional weitere Routen:
-// import authArtist from "./features/auth-artist.js";
-// import authCustomer from "./features/auth-customer.js";
-// import authManager from "./features/auth-manager.js";
-// import wannados from "./features/wannados.js";
-// import ideas from "./features/ideas.js";
-// import templates from "./features/templates.js";
+ import authArtist from "./features/auth-artist.js";
+ import authCustomer from "./features/auth-customer.js";
+ import authManager from "./features/auth-manager.js";
+ import wannados from "./features/wannados.js";
+ import ideas from "./features/ideas.js";
+ import templates from "./features/templates.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
