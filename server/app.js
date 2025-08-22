@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
-import managerRoutes from "./features/manager.js";
+import managerRoutes from "/features/manager.js";
 app.use("/api", managerRoutes);
 
 
