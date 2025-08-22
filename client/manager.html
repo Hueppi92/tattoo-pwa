@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manager Portal - Tattoo App</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="theme.css">
+  <script src="config.js" defer></script>
+  <script src="manager.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Studio Manager Portal</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Start</a></li>
+        <li><a href="manager.html" class="active">Dashboard</a></li>
+        <li><a href="manager-login.html">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section id="overview">
+      <h2>Studio Übersicht</h2>
+      <div id="studio-summary">
+        <!-- Kurzübersicht: Anzahl Artists, Kunden, Termine -->
+      </div>
+    </section>
+
+    <section id="artists">
+      <h2>Künstler</h2>
+      <ul id="artist-list"></ul>
+    </section>
+
+    <section id="appointments">
+      <h2>Alle Termine</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Uhrzeit</th>
+            <th>Kunde</th>
+            <th>Künstler</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="appointment-list"></tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
